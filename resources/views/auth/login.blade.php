@@ -2,13 +2,23 @@
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
-    <form method="POST" action="{{ route('login') }}">
+    <form
+        method="POST"
+        action="{{ route('login') }}"
+        x-data="loginLockoutForm({
+            initialEmail: @js(old('email', '')),
+            initialSecondsRemaining: {{ $loginLockout['seconds_remaining'] }},
+            initialLocked: @js($loginLockout['locked']),
+            statusUrl: @js(route('login.lockout-status')),
+        })"
+        x-on:submit="preventIfLocked($event)"
+    >
         @csrf
 
         <!-- Email Address -->
         <div>
             <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
+            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" x-model="email" x-on:input.debounce.400ms="refreshStatus" required autofocus autocomplete="username" />
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
 
@@ -39,9 +49,14 @@
                 </a>
             @endif
 
-            <x-primary-button class="ms-3">
+            <x-primary-button class="ms-3" x-bind:disabled="locked" x-bind:class="locked ? 'cursor-not-allowed opacity-60' : ''">
                 {{ __('Log in') }}
             </x-primary-button>
         </div>
+
+        <p x-cloak x-show="locked" class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            El acceso esta temporalmente bloqueado por demasiados intentos fallidos. Tiempo restante:
+            <span class="font-semibold" x-text="formattedCountdown"></span>
+        </p>
     </form>
 </x-guest-layout>

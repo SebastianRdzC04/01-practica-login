@@ -11,8 +11,11 @@ class LoginLog extends Model
     use HasFactory;
 
     public const EVENT_LOGIN_SUCCESS = 'login_success';
+
     public const EVENT_LOGIN_FAILED = 'login_failed';
+
     public const EVENT_LOGIN_LOCKOUT = 'login_lockout';
+
     public const EVENT_LOGOUT = 'logout';
 
     protected $fillable = [

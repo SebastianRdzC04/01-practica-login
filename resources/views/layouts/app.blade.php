@@ -14,7 +14,23 @@
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans antialiased">
+    <body
+        class="font-sans antialiased"
+        @auth
+            @php
+                $inactivityProtection = [
+                    'enabled' => (bool) session('inactivity.protected', false),
+                    'modalTimeoutSeconds' => (int) session('inactivity.modal_timeout_seconds', 30),
+                    'warningTimeoutSeconds' => (int) session('inactivity.warning_timeout_seconds', 10),
+                    'heartbeatUrl' => route('session.activity'),
+                    'logoutUrl' => route('logout'),
+                    'csrfToken' => csrf_token(),
+                ];
+            @endphp
+            x-data="sessionInactivityGuard(@js($inactivityProtection))"
+            x-init="init()"
+        @endauth
+    >
         <div class="min-h-screen bg-gray-100">
             @include('layouts.navigation')
 
@@ -32,5 +48,40 @@
                 {{ $slot }}
             </main>
         </div>
+
+        @auth
+            <div
+                x-cloak
+                x-show="enabled && showPrompt"
+                x-transition.opacity
+                class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4"
+            >
+                <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+                    <h2 class="text-lg font-semibold text-slate-900">Aun estas ahi?</h2>
+                    <p class="mt-3 text-sm leading-6 text-slate-600">
+                        Detectamos inactividad en tu sesion. Si deseas continuar, confirma antes de que termine la cuenta regresiva.
+                    </p>
+                    <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                        La sesion se cerrara automaticamente en <span x-text="promptCountdown"></span>.
+                    </div>
+                    <div class="mt-6 flex justify-end gap-3">
+                        <button
+                            type="button"
+                            class="inline-flex items-center rounded-md border border-slate-300 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-slate-700 transition hover:bg-slate-100"
+                            x-on:click="logoutNow()"
+                        >
+                            Cerrar sesion
+                        </button>
+                        <button
+                            type="button"
+                            class="inline-flex items-center rounded-md bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-slate-800"
+                            x-on:click="stayActive()"
+                        >
+                            Seguir en sesion
+                        </button>
+                    </div>
+                </div>
+            </div>
+        @endauth
     </body>
 </html>

@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
 
-Route::middleware(['auth', 'auth.session', 'log.route.visit'])->group(function () {
+Route::middleware(['auth', 'auth.session', 'log.route.visit', 'inactivity.protected'])->group(function () {
     Route::get('/home', function (Request $request): RedirectResponse {
         return redirect()->route($request->user()->homeRouteName());
     })->name('home.redirect');

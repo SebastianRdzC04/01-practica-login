@@ -14,8 +14,11 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     public const ROLE_CLIENT = 'cliente';
+
     public const ROLE_USER = 'usuario';
+
     public const ROLE_ADMIN = 'administrador';
+
     public const ROLE_LOGGER = 'logger';
 
     /**

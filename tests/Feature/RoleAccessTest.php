@@ -37,8 +37,8 @@ class RoleAccessTest extends TestCase
         $response = $this->actingAs($user)->get(route('dashboard'));
 
         $response->assertOk();
-        $response->assertSee('Inicio de usuario');
-        $response->assertDontSee('Componente exclusivo de administrador');
+        $response->assertSee('Centro de trabajo general');
+        $response->assertDontSee('Zona de control administrativo');
         $response->assertDontSee('Logs de autenticacion');
     }
 
@@ -49,8 +49,8 @@ class RoleAccessTest extends TestCase
         $response = $this->actingAs($admin)->get(route('dashboard'));
 
         $response->assertOk();
-        $response->assertSee('Componente exclusivo de administrador');
-        $response->assertDontSee('Inicio de usuario');
+        $response->assertSee('Zona de control administrativo');
+        $response->assertDontSee('Centro de trabajo general');
         $response->assertDontSee('Logs de autenticacion');
     }
 
@@ -74,6 +74,6 @@ class RoleAccessTest extends TestCase
         $response->assertOk();
         $response->assertSee('Logs de autenticacion');
         $response->assertSee(LoginLog::EVENT_LOGIN_SUCCESS);
-        $response->assertDontSee('Componente exclusivo de administrador');
+        $response->assertDontSee('Zona de control administrativo');
     }
 }
