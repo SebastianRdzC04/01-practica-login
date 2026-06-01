@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Support\AuthLog;
 use App\Support\LoginLockout;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,16 @@ class AuthenticatedSessionController extends Controller
     public function create(): View
     {
         $email = (string) request()->old('email', request()->query('email', ''));
+
+        AuthLog::info('Login screen viewed', [
+            'event' => AuthLog::EVENT_LOGIN_SCREEN_VIEWED,
+            'succeeded' => true,
+            'email' => $email !== '' ? $email : null,
+            'guard' => 'web',
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'message' => 'Pantalla de inicio de sesion mostrada.',
+        ]);
 
         return view('auth.login', [
             'loginLockout' => LoginLockout::state($email, (string) request()->ip()),

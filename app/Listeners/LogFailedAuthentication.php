@@ -2,9 +2,8 @@
 
 namespace App\Listeners;
 
-use App\Models\LoginLog;
+use App\Support\AuthLog;
 use Illuminate\Auth\Events\Failed;
-use Illuminate\Support\Facades\Log;
 
 class LogFailedAuthentication
 {
@@ -12,24 +11,16 @@ class LogFailedAuthentication
     {
         $request = request();
 
-        LoginLog::create([
-            'user_id' => data_get($event->user, 'id'),
-            'event' => LoginLog::EVENT_LOGIN_FAILED,
+        AuthLog::warning('Authentication failed', [
+            'event' => AuthLog::EVENT_LOGIN_FAILED,
             'succeeded' => false,
             'email' => data_get($event->credentials, 'email'),
+            'user_id' => data_get($event->user, 'id'),
             'role' => data_get($event->user, 'role'),
             'guard' => $event->guard,
             'ip_address' => $request?->ip(),
             'user_agent' => $request?->userAgent(),
             'message' => 'Intento de inicio de sesion fallido.',
-        ]);
-
-        Log::warning('Authentication failed', [
-            'event' => LoginLog::EVENT_LOGIN_FAILED,
-            'email' => data_get($event->credentials, 'email'),
-            'user_id' => data_get($event->user, 'id'),
-            'role' => data_get($event->user, 'role'),
-            'ip_address' => $request?->ip(),
         ]);
     }
 }

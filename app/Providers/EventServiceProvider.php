@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Listeners\LogAuthenticationLockout;
 use App\Listeners\LogFailedAuthentication;
+use App\Listeners\LogRegisteredAuthentication;
 use App\Listeners\LogLogoutAuthentication;
 use App\Listeners\LogSuccessfulAuthentication;
 use Illuminate\Auth\Events\Failed;
@@ -24,6 +25,7 @@ class EventServiceProvider extends ServiceProvider
     protected $listen = [
         Registered::class => [
             SendEmailVerificationNotification::class,
+            LogRegisteredAuthentication::class,
         ],
         Login::class => [
             LogSuccessfulAuthentication::class,

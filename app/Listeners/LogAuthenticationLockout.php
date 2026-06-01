@@ -2,9 +2,8 @@
 
 namespace App\Listeners;
 
-use App\Models\LoginLog;
+use App\Support\AuthLog;
 use Illuminate\Auth\Events\Lockout;
-use Illuminate\Support\Facades\Log;
 
 class LogAuthenticationLockout
 {
@@ -12,8 +11,8 @@ class LogAuthenticationLockout
     {
         $request = $event->request;
 
-        LoginLog::create([
-            'event' => LoginLog::EVENT_LOGIN_LOCKOUT,
+        AuthLog::warning('Authentication lockout', [
+            'event' => AuthLog::EVENT_LOGIN_LOCKOUT,
             'succeeded' => false,
             'email' => $request->input('email'),
             'guard' => 'web',
@@ -23,12 +22,6 @@ class LogAuthenticationLockout
             'metadata' => [
                 'throttle_key' => method_exists($request, 'throttleKey') ? $request->throttleKey() : null,
             ],
-        ]);
-
-        Log::warning('Authentication lockout', [
-            'event' => LoginLog::EVENT_LOGIN_LOCKOUT,
-            'email' => $request->input('email'),
-            'ip_address' => $request->ip(),
         ]);
     }
 }

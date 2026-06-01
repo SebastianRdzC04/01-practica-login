@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Models\LoginLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -30,10 +29,10 @@ class AuthenticationTest extends TestCase
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard'));
 
-        $this->assertDatabaseHas('login_logs', [
-            'event' => LoginLog::EVENT_LOGIN_SUCCESS,
-            'email' => $user->email,
-            'succeeded' => true,
+        $this->assertAuthMongoLogExists([
+            'context.event' => 'login_success',
+            'context.email' => $user->email,
+            'context.succeeded' => true,
         ]);
     }
 
@@ -48,10 +47,10 @@ class AuthenticationTest extends TestCase
 
         $this->assertGuest();
 
-        $this->assertDatabaseHas('login_logs', [
-            'event' => LoginLog::EVENT_LOGIN_FAILED,
-            'email' => $user->email,
-            'succeeded' => false,
+        $this->assertAuthMongoLogExists([
+            'context.event' => 'login_failed',
+            'context.email' => $user->email,
+            'context.succeeded' => false,
         ]);
     }
 
@@ -64,10 +63,10 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
         $response->assertRedirect('/');
 
-        $this->assertDatabaseHas('login_logs', [
-            'event' => LoginLog::EVENT_LOGOUT,
-            'email' => $user->email,
-            'succeeded' => true,
+        $this->assertAuthMongoLogExists([
+            'context.event' => 'logout',
+            'context.email' => $user->email,
+            'context.succeeded' => true,
         ]);
     }
 

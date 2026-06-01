@@ -98,6 +98,12 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
+        'mongodb' => [
+            'driver' => 'mongodb',
+            'uri' => env('MONGO_URI', 'mongodb://mongo:27017'),
+            'database' => env('MONGO_DATABASE', 'laravel_logs'),
+        ],
+
     ],
 
     /*

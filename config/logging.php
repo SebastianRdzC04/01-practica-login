@@ -3,6 +3,8 @@
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
+use Monolog\Formatter\MongoDBFormatter;
+use Monolog\Processor\IntrospectionProcessor;
 use Monolog\Processor\PsrLogMessageProcessor;
 
 return [
@@ -103,6 +105,19 @@ return [
                 'stream' => 'php://stderr',
             ],
             'processors' => [PsrLogMessageProcessor::class],
+        ],
+
+        'auth' => [
+            'driver' => 'monolog',
+            'level' => env('AUTH_LOG_LEVEL', env('LOG_LEVEL', 'info')),
+            'handler' => App\Logging\AuthMongoHandler::class,
+            'formatter' => MongoDBFormatter::class,
+            'handler_with' => [
+                'uri' => env('MONGO_URI', 'mongodb://mongo:27017'),
+                'database' => env('MONGO_DATABASE', 'laravel_logs'),
+                'collection' => env('MONGO_AUTH_LOG_COLLECTION', 'auth_logs'),
+            ],
+            'processors' => [PsrLogMessageProcessor::class, IntrospectionProcessor::class],
         ],
 
         'syslog' => [

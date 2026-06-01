@@ -33,7 +33,7 @@
                 @endif
 
                 @if ($user->hasRole(\App\Models\User::ROLE_LOGGER))
-                    @include('dashboard.partials.logger-panel', ['loginLogs' => $loginLogs])
+                    @include('dashboard.partials.logger-panel')
                 @endif
             </div>
         </div>

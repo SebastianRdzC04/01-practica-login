@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\LoginLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -58,22 +57,11 @@ class RoleAccessTest extends TestCase
     {
         $logger = User::factory()->logger()->create();
 
-        LoginLog::create([
-            'user_id' => $logger->id,
-            'event' => LoginLog::EVENT_LOGIN_SUCCESS,
-            'succeeded' => true,
-            'email' => $logger->email,
-            'role' => $logger->role,
-            'guard' => 'web',
-            'ip_address' => '127.0.0.1',
-            'message' => 'Inicio de sesion exitoso.',
-        ]);
-
         $response = $this->actingAs($logger)->get(route('dashboard'));
 
         $response->assertOk();
         $response->assertSee('Logs de autenticacion');
-        $response->assertSee(LoginLog::EVENT_LOGIN_SUCCESS);
+        $response->assertSee('canal dedicado `auth`');
         $response->assertDontSee('Zona de control administrativo');
     }
 }

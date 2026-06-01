@@ -35,5 +35,11 @@ class RegistrationTest extends TestCase
             'email' => 'test@example.com',
             'role' => User::ROLE_CLIENT,
         ]);
+
+        $this->assertAuthMongoLogExists([
+            'context.event' => 'register_success',
+            'context.email' => 'test@example.com',
+            'context.succeeded' => true,
+        ]);
     }
 }

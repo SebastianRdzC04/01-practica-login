@@ -3,25 +3,24 @@
 namespace App\Listeners;
 
 use App\Support\AuthLog;
-use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Registered;
 
-class LogSuccessfulAuthentication
+class LogRegisteredAuthentication
 {
-    public function handle(Login $event): void
+    public function handle(Registered $event): void
     {
         $request = request();
 
-        AuthLog::info('Authentication succeeded', [
-            'event' => AuthLog::EVENT_LOGIN_SUCCESS,
+        AuthLog::info('User registered successfully', [
+            'event' => AuthLog::EVENT_REGISTER_SUCCESS,
             'succeeded' => true,
             'user_id' => data_get($event->user, 'id'),
             'email' => data_get($event->user, 'email'),
             'role' => data_get($event->user, 'role'),
-            'guard' => $event->guard,
+            'guard' => 'web',
             'ip_address' => $request?->ip(),
             'user_agent' => $request?->userAgent(),
-            'remember' => $event->remember,
-            'message' => 'Inicio de sesion exitoso.',
+            'message' => 'Registro completado correctamente.',
         ]);
     }
 }

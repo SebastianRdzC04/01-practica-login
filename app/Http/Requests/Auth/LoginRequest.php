@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Support\AuthLog;
 use App\Support\LoginLockout;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\Rule;
@@ -41,6 +42,17 @@ class LoginRequest extends FormRequest
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
+
+        AuthLog::info('Authentication attempt received', [
+            'event' => AuthLog::EVENT_LOGIN_ATTEMPT,
+            'succeeded' => false,
+            'email' => (string) $this->string('email'),
+            'guard' => 'web',
+            'ip_address' => $this->ip(),
+            'user_agent' => $this->userAgent(),
+            'remember' => $this->boolean('remember'),
+            'message' => 'Intento de inicio de sesion recibido.',
+        ]);
 
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
