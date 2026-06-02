@@ -65,4 +65,10 @@ Route::middleware('auth')->group(function () {
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
+
+    Route::get('mfa/verify', [\App\Http\Controllers\TwoFactorController::class, 'showVerify'])
+    ->name('mfa.verify');
+
+    Route::post('mfa/verify', [\App\Http\Controllers\TwoFactorController::class, 'verify'])
+        ->name('mfa.verify.post');
 });

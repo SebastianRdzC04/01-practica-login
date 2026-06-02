@@ -37,6 +37,9 @@ services:
       SESSION_LIFETIME: 120
       MAIL_MAILER: log
       VITE_APP_NAME: Laravel
+      RECAPTCHA_SITE_KEY: 6LcmjwktAAAAAMmSUeGHuLrvkjUMX2BPbngiWk_a
+      RECAPTCHA_SECRET: 6LcmjwktAAAAAHgsipDo32fSalx_1iAxh_cfN7GE
+
     depends_on:
       mariadb:
         condition: service_healthy

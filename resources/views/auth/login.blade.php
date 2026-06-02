@@ -1,4 +1,5 @@
 <x-guest-layout>
+    
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
@@ -52,6 +53,10 @@
             <x-primary-button class="ms-3" x-bind:disabled="locked" x-bind:class="locked ? 'cursor-not-allowed opacity-60' : ''">
                 {{ __('Log in') }}
             </x-primary-button>
+        </div>
+
+        <div class="mt-4">
+            <x-recaptcha />
         </div>
 
         <p x-cloak x-show="locked" class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">

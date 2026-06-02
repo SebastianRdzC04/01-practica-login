@@ -62,4 +62,16 @@ class User extends Authenticatable
         return $this->hasRole(self::ROLE_CLIENT) ? 'client.home' : 'dashboard';
     }
 
+    public function requiredFactors(): array
+    {
+        $map = [
+            'cliente' => ['password'],       // solo contraseña
+            'usuario' => ['password','totp'],// password + totp
+            'administrador' => ['password','totp','webauthn'], // ejemplo con 3
+            'logger' => ['password','totp'],
+        ];
+
+        return $map[$this->role] ?? ['password'];
+    }
+
 }

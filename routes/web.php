@@ -41,6 +41,8 @@ Route::middleware(['auth', 'auth.session', 'log.route.visit', 'inactivity.protec
     // Two-factor setup routes (required if not configured)
     Route::get('/mfa/setup', [TwoFactorController::class, 'showSetup'])->name('mfa.setup');
     Route::post('/mfa/confirm', [TwoFactorController::class, 'confirmSetup'])->name('mfa.confirm');
+    Route::get('/mfa/verify', [TwoFactorController::class, 'showVerify'])->name('mfa.verify');
+    Route::post('/mfa/verify', [TwoFactorController::class, 'verify'])->name('mfa.verify.post');
 });
 
 require __DIR__.'/auth.php';

@@ -72,6 +72,10 @@
         <div class="flex items-center gap-4">
             <x-primary-button x-bind:disabled="!canSubmit" x-bind:class="!canSubmit ? 'cursor-not-allowed opacity-60' : ''">{{ __('Save') }}</x-primary-button>
 
+            <div class="ms-4">
+                <x-recaptcha />
+            </div>
+
             @if (session('status') === 'password-updated')
                 <p
                     x-data="{ show: true }"

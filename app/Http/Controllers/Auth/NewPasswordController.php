@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
+use App\Services\RecaptchaService;
 use Illuminate\View\View;
 
 class NewPasswordController extends Controller
@@ -35,6 +36,16 @@ class NewPasswordController extends Controller
             'email' => ['required', 'email'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
+
+        // Verify reCAPTCHA
+        $token = $request->input('g-recaptcha-response');
+        if (config('services.recaptcha.secret') ?? env('RECAPTCHA_SECRET')) {
+            if (! RecaptchaService::verify($token, $request->ip())) {
+                throw ValidationException::withMessages([
+                    'email' => 'reCAPTCHA verification failed.',
+                ]);
+            }
+        }
 
         // Here we will attempt to reset the user's password. If it is successful we
         // will update the password on an actual user model and persist it to the

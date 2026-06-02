@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use App\Services\RecaptchaService;
 
 class ConfirmablePasswordController extends Controller
 {
@@ -24,6 +25,15 @@ class ConfirmablePasswordController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        // Verify reCAPTCHA token
+        $token = $request->input('g-recaptcha-response');
+        if (config('services.recaptcha.secret') ?? env('RECAPTCHA_SECRET')) {
+            if (! RecaptchaService::verify($token, $request->ip())) {
+                throw ValidationException::withMessages([
+                    'password' => 'reCAPTCHA verification failed.',
+                ]);
+            }
+        }
         if (! Auth::guard('web')->validate([
             'email' => $request->user()->email,
             'password' => $request->password,

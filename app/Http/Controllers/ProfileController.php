@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
+use App\Services\RecaptchaService;
+use Illuminate\Validation\ValidationException;
 
 class ProfileController extends Controller
 {
@@ -26,6 +28,16 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
+        // Verify reCAPTCHA token
+        $token = $request->input('g-recaptcha-response');
+        if (config('services.recaptcha.secret') ?? env('RECAPTCHA_SECRET')) {
+            if (! RecaptchaService::verify($token, $request->ip())) {
+                throw ValidationException::withMessages([
+                    'name' => 'reCAPTCHA verification failed.',
+                ]);
+            }
+        }
+
         $request->user()->fill($request->validated());
 
         if ($request->user()->isDirty('email')) {
@@ -45,6 +57,16 @@ class ProfileController extends Controller
         $request->validateWithBag('userDeletion', [
             'password' => ['required', 'current_password'],
         ]);
+
+        // Verify reCAPTCHA token for account deletion
+        $token = $request->input('g-recaptcha-response');
+        if (config('services.recaptcha.secret') ?? env('RECAPTCHA_SECRET')) {
+            if (! RecaptchaService::verify($token, $request->ip())) {
+                throw ValidationException::withMessages([
+                    'password' => 'reCAPTCHA verification failed.',
+                ]);
+            }
+        }
 
         $user = $request->user();
 

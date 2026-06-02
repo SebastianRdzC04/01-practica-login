@@ -5,6 +5,12 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use PragmaRX\Google2FA\Google2FA;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
+use App\Services\RecaptchaService;
+use Illuminate\Validation\ValidationException;
 
 class TwoFactorController
 {
@@ -27,7 +33,10 @@ class TwoFactorController
             $secret
         );
 
-        $qrImage = 'https://chart.googleapis.com/chart?chs=200x200&chld=M|0&cht=qr&chl='.urlencode($qrCodeUrl);
+        $renderer = new ImageRenderer(new RendererStyle(200), new SvgImageBackEnd());
+        $writer = new Writer($renderer);
+        $svg = $writer->writeString($qrCodeUrl);
+        $qrImage = 'data:image/svg+xml;base64,' . base64_encode($svg);
 
         return view('mfa.setup', [
             'qrImage' => $qrImage,
@@ -37,6 +46,16 @@ class TwoFactorController
 
     public function confirmSetup(Request $request)
     {
+        // Verify reCAPTCHA token
+        $token = $request->input('g-recaptcha-response');
+        if (config('services.recaptcha.secret') ?? env('RECAPTCHA_SECRET')) {
+            if (! RecaptchaService::verify($token, $request->ip())) {
+                throw ValidationException::withMessages([
+                    'totp' => 'reCAPTCHA verification failed.',
+                ]);
+            }
+        }
+
         $request->validate([
             'totp' => ['required', 'digits:6'],
         ]);
@@ -63,6 +82,57 @@ class TwoFactorController
         // clear session temp secret
         $request->session()->forget('mfa_secret');
 
-        return redirect()->intended('/');
+        return redirect()->intended(route($request->user()->homeRouteName()));
+    }
+
+    public function showVerify(Request $request)
+    {
+        return view('mfa.verify');
+    }
+    public function verify(Request $request)
+    {
+        // Verify reCAPTCHA token
+        $token = $request->input('g-recaptcha-response');
+        if (config('services.recaptcha.secret') ?? env('RECAPTCHA_SECRET')) {
+            if (! RecaptchaService::verify($token, $request->ip())) {
+                throw ValidationException::withMessages([
+                    'totp' => 'reCAPTCHA verification failed.',
+                ]);
+            }
+        }
+
+        $request->validate(['totp' => ['required','digits:6']]);
+
+        $user = Auth::user();
+        if (! $user) {
+            return redirect()->route('login');
+        }
+
+        $secretEncrypted = $user->two_factor_secret;
+        if (! $secretEncrypted) {
+            return redirect()->route('mfa.setup')->withErrors(['totp' => 'No existe clave TOTP, configura MFA primero.']);
+        }
+
+        $secret = decrypt($secretEncrypted);
+        $google2fa = new Google2FA();
+        $valid = $google2fa->verifyKey($secret, $request->input('totp'));
+
+        if (! $valid) {
+            return back()->withErrors(['totp' => 'Código TOTP inválido.'])->withInput();
+        }
+
+        $factorsPassed = $request->session()->get('factors_passed', []);
+        $factorsPassed[] = 'totp';
+        $request->session()->put('factors_passed', array_unique($factorsPassed));
+
+        // comprobar si ya pasó todos
+        $required = $request->session()->get('factors_required', []);
+        $passed = $request->session()->get('factors_passed', []);
+        if (empty($required) || count(array_intersect($required, $passed)) >= count($required)) {
+            return redirect()->intended(route($request->user()->homeRouteName()));
+        }
+
+        // si quedan factores pendientes, redirigir al siguiente (solo totp por ahora)
+        return redirect()->route('home.redirect');
     }
 }

@@ -40,10 +40,46 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        // attempt authentication first
         $request->authenticate();
 
+        // regenerate session to prevent fixation
         $request->session()->regenerate();
 
+        $user = Auth::user();
+
+        // determine required factors for this user
+        $required = $user->requiredFactors();
+
+        // always remove 'password' because it was already provided
+        $pending = array_values(array_filter($required, fn($f) => $f !== 'password'));
+
+        // check for unconfigured required factors
+        $unconfigured = [];
+        foreach ($pending as $factor) {
+            if ($factor === 'totp' && ! $user->two_factor_enabled) {
+                $unconfigured[] = 'totp';
+            }
+            // añadir comprobaciones para otros factores (webauthn, etc.)
+        }
+
+        if (! empty($unconfigured)) {
+            // pedir configuracion del primer factor no configurado
+            return redirect()->route('mfa.setup');
+        }
+
+        // almacenar en sesión los factores pendientes (a verificar)
+        session(['factors_required' => $pending, 'factors_passed' => []]);
+
+        // si hay factores pendientes, redirigir al flujo del primer factor
+        if (! empty($pending)) {
+            if ($pending[0] === 'totp') {
+                return redirect()->route('mfa.verify');
+            }
+            // manejar otros factores según tu diseño
+        }
+
+        // no hay factores adicionales — completar login
         return redirect()->intended(route($request->user()->homeRouteName()));
     }
 
@@ -52,6 +88,8 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $request->session()->forget(['two_factor_passed','factors_required','factors_passed','mfa_secret']);
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();

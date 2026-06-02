@@ -7,6 +7,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
+use App\Services\RecaptchaService;
 use Illuminate\View\View;
 
 class PasswordResetLinkController extends Controller
@@ -29,6 +30,16 @@ class PasswordResetLinkController extends Controller
         $request->validate([
             'email' => ['required', 'email'],
         ]);
+
+        // Verify reCAPTCHA
+        $token = $request->input('g-recaptcha-response');
+        if (config('services.recaptcha.secret') ?? env('RECAPTCHA_SECRET')) {
+            if (! RecaptchaService::verify($token, $request->ip())) {
+                throw ValidationException::withMessages([
+                    'email' => 'reCAPTCHA verification failed.',
+                ]);
+            }
+        }
 
         // We will send the password reset link to this user. Once we have attempted
         // to send the link, we will examine the response then see the message we

@@ -23,5 +23,8 @@
                 {{ __('Confirm') }}
             </x-primary-button>
         </div>
+        <div class="mt-4">
+            <x-recaptcha />
+        </div>
     </form>
 </x-guest-layout>

@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-guest-layout>
 <div class="max-w-2xl mx-auto py-12">
     <div class="bg-white shadow overflow-hidden sm:rounded-lg p-6">
         <h2 class="text-lg font-medium text-gray-900">Configurar Autenticación de Dos Factores (TOTP)</h2>
@@ -22,11 +22,13 @@
             @error('totp')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
 
             <div class="mt-4">
+                <x-recaptcha />
+                <div class="mt-3"></div>
                 <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md">Confirmar</button>
             </div>
         </form>
     </div>
 </div>
-</x-app-layout>
+</x-guest-layout>
 
 

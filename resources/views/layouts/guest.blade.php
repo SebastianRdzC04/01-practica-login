@@ -13,6 +13,13 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <script type="text/javascript">
+      var onloadCallback = function() {
+        grecaptcha.enterprise.render('html_element', {
+          'sitekey' : env('RECAPTCHA_SITE_KEY'),
+        });
+      };
+    </script>
     </head>
     <body class="font-sans text-gray-900 antialiased">
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
@@ -26,5 +33,6 @@
                 {{ $slot }}
             </div>
         </div>
+    </script>
     </body>
 </html>

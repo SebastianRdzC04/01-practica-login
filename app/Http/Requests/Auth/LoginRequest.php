@@ -5,11 +5,11 @@ namespace App\Http\Requests\Auth;
 use App\Support\AuthLog;
 use App\Support\LoginLockout;
 use Illuminate\Auth\Events\Lockout;
-use Illuminate\Contracts\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
+use GuzzleHttp\Client;
 
 class LoginRequest extends FormRequest
 {
@@ -53,6 +53,43 @@ class LoginRequest extends FormRequest
             'remember' => $this->boolean('remember'),
             'message' => 'Intento de inicio de sesion recibido.',
         ]);
+
+        // Verify reCAPTCHA token
+        $recaptchaSecret = config('services.recaptcha.secret') ?? env('RECAPTCHA_SECRET');
+        $token = $this->input('g-recaptcha-response');
+        if ($recaptchaSecret) {
+            if (! $token) {
+                RateLimiter::hit($this->throttleKey());
+
+                throw ValidationException::withMessages([
+                    'email' => 'reCAPTCHA token missing. Por favor completa el captcha.',
+                ]);
+            }
+
+            try {
+                $client = new Client(['timeout' => 5]);
+                $res = $client->post('https://www.google.com/recaptcha/api/siteverify', [
+                    'form_params' => [
+                        'secret' => $recaptchaSecret,
+                        'response' => $token,
+                        'remoteip' => $this->ip(),
+                    ],
+                ]);
+
+                $body = json_decode((string) $res->getBody(), true);
+                if (! ($body['success'] ?? false)) {
+                    RateLimiter::hit($this->throttleKey());
+                    throw ValidationException::withMessages([
+                        'email' => 'reCAPTCHA verification failed.',
+                    ]);
+                }
+            } catch (\Exception $e) {
+                RateLimiter::hit($this->throttleKey());
+                throw ValidationException::withMessages([
+                    'email' => 'No se pudo verificar reCAPTCHA. Inténtalo de nuevo.',
+                ]);
+            }
+        }
 
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
