@@ -1,11 +1,12 @@
 <x-guest-layout>
-    
+
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
     <form
         method="POST"
         action="{{ route('login') }}"
+        class="recaptcha-invisible"
         x-data="loginLockoutForm({
             initialEmail: @js(old('email', '')),
             initialSecondsRemaining: {{ $loginLockout['seconds_remaining'] }},
@@ -55,9 +56,7 @@
             </x-primary-button>
         </div>
 
-        <div class="mt-4">
-            <x-recaptcha />
-        </div>
+        {{-- invisible reCAPTCHA handled globally in guest layout --}}
 
         <p x-cloak x-show="locked" class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             El acceso esta temporalmente bloqueado por demasiados intentos fallidos. Tiempo restante:

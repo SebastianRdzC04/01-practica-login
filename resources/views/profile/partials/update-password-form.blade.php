@@ -12,7 +12,7 @@
     <form
         method="post"
         action="{{ route('password.update') }}"
-        class="mt-6 space-y-6"
+        class="mt-6 space-y-6 recaptcha-invisible"
         x-data="passwordSecurityForm()"
         x-on:submit="submitIfValid($event)"
     >
@@ -72,9 +72,7 @@
         <div class="flex items-center gap-4">
             <x-primary-button x-bind:disabled="!canSubmit" x-bind:class="!canSubmit ? 'cursor-not-allowed opacity-60' : ''">{{ __('Save') }}</x-primary-button>
 
-            <div class="ms-4">
-                <x-recaptcha />
-            </div>
+            <!-- invisible reCAPTCHA handled globally in guest layout -->
 
             @if (session('status') === 'password-updated')
                 <p

@@ -6,7 +6,7 @@
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
-    <form method="POST" action="{{ route('password.email') }}">
+        <form method="POST" action="{{ route('password.email') }}" class="recaptcha-invisible">
         @csrf
 
         <!-- Email Address -->
@@ -21,8 +21,8 @@
                 {{ __('Email Password Reset Link') }}
             </x-primary-button>
         </div>
-        <div class="mt-4">
-            <x-recaptcha />
-        </div>
+            <div class="mt-4">
+                <!-- Removed standalone x-recaptcha usage -->
+            </div>
     </form>
 </x-guest-layout>

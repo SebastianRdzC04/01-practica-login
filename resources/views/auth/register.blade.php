@@ -2,6 +2,7 @@
     <form
         method="POST"
         action="{{ route('register') }}"
+        class="recaptcha-invisible"
         x-data="passwordSecurityForm()"
         x-on:submit="submitIfValid($event)"
     >
@@ -90,8 +91,6 @@
                 {{ __('Register') }}
             </x-primary-button>
         </div>
-        <div class="mt-4">
-            <x-recaptcha />
-        </div>
+        {{-- invisible reCAPTCHA handled globally in guest layout --}}
     </form>
 </x-guest-layout>

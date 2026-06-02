@@ -14,7 +14,7 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ route('mfa.confirm') }}" class="mt-6">
+        <form method="POST" action="{{ route('mfa.confirm') }}" class="mt-6 recaptcha-invisible">
             @csrf
 
             <label class="block text-sm font-medium text-gray-700">Código de 6 dígitos</label>
@@ -22,7 +22,7 @@
             @error('totp')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
 
             <div class="mt-4">
-                <x-recaptcha />
+                <!-- invisible recaptcha via guest layout -->
                 <div class="mt-3"></div>
                 <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md">Confirmar</button>
             </div>

@@ -4,7 +4,7 @@
         <h2 class="text-lg font-medium text-gray-900">Verificación de Dos Factores</h2>
         <p class="mt-2 text-sm text-gray-600">Introduce el código de 6 dígitos de tu app de autenticación.</p>
 
-        <form method="POST" action="{{ route('mfa.verify.post') }}" class="mt-6">
+        <form method="POST" action="{{ route('mfa.verify.post') }}" class="mt-6 recaptcha-invisible">
             @csrf
 
             <label class="block text-sm font-medium text-gray-700">Código de 6 dígitos</label>
@@ -13,7 +13,7 @@
 
             <div class="mt-4 flex items-center justify-between">
                 <div>
-                    <x-recaptcha />
+                    <!-- invisible recaptcha via guest layout -->
                 </div>
                 <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md">Verificar</button>
                 <form method="POST" action="{{ route('logout') }}">

@@ -74,4 +74,14 @@ class User extends Authenticatable
         return $map[$this->role] ?? ['password'];
     }
 
+    public function webauthnCredentials()
+    {
+        return $this->hasMany(WebAuthnCredential::class);
+    }
+
+    public function hasWebauthnEnabled(): bool
+    {
+        return $this->webauthnCredentials()->exists();
+    }
+
 }

@@ -1,5 +1,5 @@
 <x-guest-layout>
-    <form method="POST" action="{{ route('password.store') }}">
+    <form method="POST" action="{{ route('password.store') }}" class="recaptcha-invisible">
         @csrf
 
         <!-- Password Reset Token -->
@@ -34,9 +34,6 @@
             <x-primary-button>
                 {{ __('Reset Password') }}
             </x-primary-button>
-        </div>
-        <div class="mt-4">
-            <x-recaptcha />
         </div>
     </form>
 </x-guest-layout>

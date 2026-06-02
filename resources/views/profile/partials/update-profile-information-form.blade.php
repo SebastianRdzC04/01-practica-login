@@ -13,7 +13,7 @@
         @csrf
     </form>
 
-    <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-6">
+    <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-6 recaptcha-invisible">
         @csrf
         @method('patch')
 
@@ -50,9 +50,7 @@
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('Save') }}</x-primary-button>
 
-            <div class="ms-4">
-                <x-recaptcha />
-            </div>
+            <!-- invisible reCAPTCHA handled globally in guest layout -->
 
             @if (session('status') === 'profile-updated')
                 <p

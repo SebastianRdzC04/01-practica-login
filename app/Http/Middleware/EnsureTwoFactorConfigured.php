@@ -24,9 +24,17 @@ class EnsureTwoFactorConfigured
                 $isMfaRoute = $request->routeIs('mfa.*');
                 $passed = $request->session()->get('factors_passed', []);
 
+
                 // si falta configurar un factor obligatorio -> enviar a setup
-                if (in_array('totp', $required) && ! $hasTotp && ! $isMfaRoute) {
-                    return redirect()->route('mfa.setup');
+                if (! $isMfaRoute) {
+                    if (in_array('totp', $required) && ! $hasTotp) {
+                        return redirect()->route('mfa.setup');
+                    }
+
+                    // webauthn: si está requerido pero no tiene credenciales, pedir setup (solo para admin)
+                    if (in_array('webauthn', $required) && $user->role === User::ROLE_ADMIN && ! $user->webauthnCredentials()->exists()) {
+                        return redirect()->route('mfa.webauthn.setup');
+                    }
                 }
 
                 // si ya configurado pero no ha pasado la verificación completa
@@ -36,7 +44,9 @@ class EnsureTwoFactorConfigured
                     if (in_array('totp', $pendingRequired) && ! in_array('totp', $passed)) {
                         return redirect()->route('mfa.verify');
                     }
-                    // manejar otros factores...
+                    if (in_array('webauthn', $pendingRequired) && ! in_array('webauthn', $passed) && $user->role === User::ROLE_ADMIN) {
+                        return redirect()->route('mfa.webauthn.auth');
+                    }
                 }
             }
         }

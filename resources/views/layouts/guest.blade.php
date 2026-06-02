@@ -13,13 +13,76 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
-        <script type="text/javascript">
-      var onloadCallback = function() {
-        grecaptcha.enterprise.render('html_element', {
-          'sitekey' : env('RECAPTCHA_SITE_KEY'),
-        });
-      };
-    </script>
+        @php
+            $recaptchaSiteKey = config('services.recaptcha.sitekey') ?? env('RECAPTCHA_SITE_KEY');
+        @endphp
+        @if ($recaptchaSiteKey)
+            <script src="https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit" async defer></script>
+            <script type="text/javascript">
+                window._recaptchaWidgetId = null;
+                window._recaptchaReady = false;
+                window._recaptchaRequestingForm = null;
+
+                function onRecaptchaLoad() {
+                    if (!window.grecaptcha) return;
+                    grecaptcha.ready(function() {
+                        window._recaptchaReady = true;
+                        try {
+                            window._recaptchaWidgetId = grecaptcha.render('recaptcha-container', {
+                                'sitekey': '{{ $recaptchaSiteKey }}',
+                                'size': 'invisible',
+                                'badge': 'bottomright',
+                                'callback': function(token) {
+                                    var form = window._recaptchaRequestingForm;
+                                    if (form) {
+                                        var input = form.querySelector('input[name="g-recaptcha-response"]');
+                                        if (!input) {
+                                            input = document.createElement('input');
+                                            input.type = 'hidden';
+                                            input.name = 'g-recaptcha-response';
+                                            form.appendChild(input);
+                                        }
+                                        input.value = token;
+                                        window._recaptchaRequestingForm = null;
+                                        form.submit();
+                                    }
+                                }
+                            });
+                        } catch (e) {
+                            console.error('reCAPTCHA render error', e);
+                        }
+                    });
+                }
+
+                document.addEventListener('DOMContentLoaded', function() {
+                    function attachRecaptchaToForm(form) {
+                        if (form.__recaptchaAttached) return;
+                        form.__recaptchaAttached = true;
+                        form.addEventListener('submit', function(e) {
+                            // if token already present, allow submit
+                            var existing = form.querySelector('input[name="g-recaptcha-response"]');
+                            if (existing && existing.value) return true;
+                            e.preventDefault();
+                            window._recaptchaRequestingForm = form;
+                            if (window._recaptchaReady && window._recaptchaWidgetId !== null) {
+                                grecaptcha.execute(window._recaptchaWidgetId);
+                            } else {
+                                var iv = setInterval(function() {
+                                    if (window._recaptchaReady && window._recaptchaWidgetId !== null) {
+                                        clearInterval(iv);
+                                        grecaptcha.execute(window._recaptchaWidgetId);
+                                    }
+                                }, 200);
+                            }
+                        });
+                    }
+
+                    var forms = document.querySelectorAll('form.recaptcha-invisible');
+                    forms.forEach(function(f) { attachRecaptchaToForm(f); });
+                });
+            </script>
+            <div id="recaptcha-container" style="display:none"></div>
+        @endif
     </head>
     <body class="font-sans text-gray-900 antialiased">
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">

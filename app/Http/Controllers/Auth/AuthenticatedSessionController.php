@@ -60,6 +60,9 @@ class AuthenticatedSessionController extends Controller
             if ($factor === 'totp' && ! $user->two_factor_enabled) {
                 $unconfigured[] = 'totp';
             }
+            if ($factor === 'webauthn' && ! $user->webauthnCredentials()->exists()) {
+                $unconfigured[] = 'webauthn';
+            }
             // añadir comprobaciones para otros factores (webauthn, etc.)
         }
 
@@ -75,6 +78,9 @@ class AuthenticatedSessionController extends Controller
         if (! empty($pending)) {
             if ($pending[0] === 'totp') {
                 return redirect()->route('mfa.verify');
+            }
+            if ($pending[0] === 'webauthn') {
+                return redirect()->route('mfa.webauthn.auth');
             }
             // manejar otros factores según tu diseño
         }
