@@ -18,6 +18,8 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();
+            $table->text('two_factor_secret')->nullable();
+            $table->boolean('two_factor_enabled')->default(false);
             $table->timestamps();
         });
     }

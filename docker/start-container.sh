@@ -42,6 +42,11 @@ gosu sail php artisan config:clear
 gosu sail php artisan migrate --force
 gosu sail php artisan db:seed --force
 
-gosu sail npm run dev -- --host 0.0.0.0 > /tmp/vite.log 2>&1 &
+# Build or run dev server depending on APP_ENV
+if [ "${APP_ENV:-local}" = "production" ]; then
+    gosu sail npm run build
+else
+    gosu sail npm run dev -- --host 0.0.0.0 > /tmp/vite.log 2>&1 &
+fi
 
 exec gosu sail php artisan serve --host=0.0.0.0 --port=8000

@@ -6,6 +6,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\TwoFactorController;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,7 +21,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
 
-Route::middleware(['auth', 'auth.session', 'log.route.visit', 'inactivity.protected'])->group(function () {
+Route::middleware(['auth', 'auth.session', 'log.route.visit', 'inactivity.protected', 'ensure.mfa'])->group(function () {
     Route::get('/home', function (Request $request): RedirectResponse {
         return redirect()->route($request->user()->homeRouteName());
     })->name('home.redirect');
@@ -36,6 +37,10 @@ Route::middleware(['auth', 'auth.session', 'log.route.visit', 'inactivity.protec
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Two-factor setup routes (required if not configured)
+    Route::get('/mfa/setup', [TwoFactorController::class, 'showSetup'])->name('mfa.setup');
+    Route::post('/mfa/confirm', [TwoFactorController::class, 'confirmSetup'])->name('mfa.confirm');
 });
 
 require __DIR__.'/auth.php';

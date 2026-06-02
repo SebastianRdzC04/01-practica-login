@@ -10,29 +10,44 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
+        build-essential \
+        autoconf \
+        pkg-config \
+        libtool \
+        make \
+        gcc \
+        g++ \
         curl \
         git \
         unzip \
-        pkg-config \
         libzip-dev \
         libicu-dev \
         libonig-dev \
         libxml2-dev \
         libssl-dev \
+        libsasl2-dev \
+        libcurl4-openssl-dev \
         mariadb-client \
         default-mysql-client \
         gosu \
-    && pecl install mongodb \
-    && docker-php-ext-enable mongodb \
-    && docker-php-ext-install intl pdo_mysql zip \
-    && curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
-    && apt-get install -y --no-install-recommends nodejs \
-    && npm install -g npm \
-    && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
-    && groupadd --force -g ${WWWGROUP} sail \
-    && useradd -ms /bin/bash --no-user-group -g ${WWWGROUP} -u 1337 sail \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+RUN docker-php-ext-install intl pdo_mysql zip
+
+RUN pecl install mongodb \
+    && docker-php-ext-enable mongodb
+
+RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends nodejs \
+    && npm install -g npm \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
+    && groupadd --force -g ${WWWGROUP} sail \
+    && useradd -ms /bin/bash --no-user-group -g ${WWWGROUP} -u 1337 sail
 
 COPY docker/start-container.sh /usr/local/bin/start-container
 RUN chmod +x /usr/local/bin/start-container

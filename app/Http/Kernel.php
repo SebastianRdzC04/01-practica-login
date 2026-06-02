@@ -29,6 +29,7 @@ use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use App\Http\Middleware\EnsureTwoFactorConfigured;
 
 class Kernel extends HttpKernel
 {
@@ -93,5 +94,6 @@ class Kernel extends HttpKernel
         'role' => EnsureUserHasRole::class,
         'log.route.visit' => LogRouteVisit::class,
         'inactivity.protected' => ProtectSessionFromInactivity::class,
+        'ensure.mfa' => EnsureTwoFactorConfigured::class,
     ];
 }
