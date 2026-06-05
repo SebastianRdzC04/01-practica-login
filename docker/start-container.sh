@@ -68,10 +68,8 @@ gosu sail php artisan config:clear
 gosu sail php artisan migrate --force
 gosu sail php artisan db:seed --force
 
-if [ "${APP_ENV:-local}" = "production" ]; then
+if [ "${APP_ENV:-local}" = "production" ] || [ ! -d public/build ]; then
     gosu sail npm run build
-else
-    gosu sail npm run dev -- --host 0.0.0.0 > /tmp/vite.log 2>&1 &
 fi
 
 # Start php-fpm in background

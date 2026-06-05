@@ -17,6 +17,8 @@
                 Listo para comenzar.
             </div>
 
+            <div id="diag" class="mt-2 text-xs text-gray-400 text-center break-all"></div>
+
             <button
                 id="start"
                 type="button"
@@ -36,6 +38,13 @@
     </div>
 
 <script>
+(function() {
+    var d = document.getElementById('diag');
+    if (d) {
+        d.textContent = 'isSecureContext=' + window.isSecureContext + ' | hasCredentialsAPI=' + ('credentials' in navigator) + ' | protocol=' + location.protocol + ' | host=' + location.host;
+    }
+})();
+
 const startBtn = document.getElementById('start');
 const urls = {
     options: startBtn.dataset.optionsUrl,

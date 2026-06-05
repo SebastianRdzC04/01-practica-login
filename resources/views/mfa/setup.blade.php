@@ -29,11 +29,40 @@
                         Clave secreta de respaldo
                     </label>
 
-                    <div class="bg-gray-100 border rounded-lg p-4">
-                        <p class="font-mono text-sm break-all text-gray-800">
+                    <div
+                        id="secret-box"
+                        class="bg-gray-100 border rounded-lg p-4 cursor-pointer hover:bg-gray-200 transition-colors text-center"
+                        onclick="copySecret()"
+                        title="Presiona para copiar"
+                    >
+                        <p id="secret-text" class="font-mono text-sm break-all text-gray-800 select-all">
                             {{ $secret }}
                         </p>
+                        <p id="copy-msg" class="mt-1 text-xs text-emerald-600 hidden">
+                            Copiado
+                        </p>
                     </div>
+
+                    <script>
+                    function copySecret() {
+                        var text = document.getElementById('secret-text');
+                        if (!text) return;
+                        var range = document.createRange();
+                        range.selectNodeContents(text);
+                        var sel = window.getSelection();
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                        try {
+                            document.execCommand('copy');
+                            sel.removeAllRanges();
+                            var msg = document.getElementById('copy-msg');
+                            if (msg) {
+                                msg.classList.remove('hidden');
+                                setTimeout(function() { msg.classList.add('hidden'); }, 2000);
+                            }
+                        } catch(e) {}
+                    }
+                    </script>
 
                     <p class="mt-2 text-xs text-gray-500">
                         Guarda esta clave en un lugar seguro. Te permitirá recuperar
