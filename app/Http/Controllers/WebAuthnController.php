@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Laragear\WebAuthn\Assertion\Validator\AssertionValidation;
 use Laragear\WebAuthn\Assertion\Validator\AssertionValidator;
 use Laragear\WebAuthn\Http\Requests\AssertedRequest;
@@ -44,6 +45,7 @@ class WebAuthnController extends Controller
 
         $data = $json->toArray();
         $data['authenticatorSelection']['authenticatorAttachment'] = 'platform';
+        $data['authenticatorSelection']['userVerification'] = 'required';
         $data['timeout'] = 120000;
 
         return response()->json(['publicKey' => $data]);
@@ -55,7 +57,7 @@ class WebAuthnController extends Controller
             return $resp;
         }
 
-        $request->save(['alias' => 'Windows Hello']);
+        $request->save(['alias' => $this->detectDeviceAlias($request)]);
 
         $factorsPassed = $request->session()->get('factors_passed', []);
         $factorsPassed[] = 'webauthn';
@@ -93,6 +95,7 @@ class WebAuthnController extends Controller
         $json = $request->toVerify(Auth::user());
 
         $data = $json->toArray();
+        $data['userVerification'] = 'required';
         $data['timeout'] = 120000;
 
         return response()->json(['publicKey' => $data]);
@@ -130,5 +133,28 @@ class WebAuthnController extends Controller
                 'message' => $e->getMessage(),
             ], 422);
         }
+    }
+
+    protected function detectDeviceAlias(Request $request): string
+    {
+        $ua = $request->userAgent();
+
+        if (Str::contains($ua, ['Windows'])) {
+            return 'Windows Hello';
+        }
+
+        if (Str::contains($ua, ['Macintosh', 'Mac OS'])) {
+            return 'Touch ID';
+        }
+
+        if (Str::contains($ua, ['iPhone', 'iPad', 'iPod'])) {
+            return 'Face ID / Touch ID';
+        }
+
+        if (Str::contains($ua, ['Android'])) {
+            return 'Huella / Biometrico Android';
+        }
+
+        return 'Dispositivo biometrico';
     }
 }

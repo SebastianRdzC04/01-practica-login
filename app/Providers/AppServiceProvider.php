@@ -21,13 +21,20 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $appUrl = config('app.url');
-        if ($appUrl) {
-            URL::forceRootUrl($appUrl);
-
-            $scheme = parse_url($appUrl, PHP_URL_SCHEME);
-            if ($scheme) {
-                URL::forceScheme($scheme);
+        if (app()->environment('local', 'docker')) {
+            if (! $this->app->runningInConsole()) {
+                $request = $this->app['request'];
+                URL::forceRootUrl($request->getSchemeAndHttpHost());
+                URL::forceScheme($request->getScheme());
+            }
+        } else {
+            $appUrl = config('app.url');
+            if ($appUrl) {
+                URL::forceRootUrl($appUrl);
+                $scheme = parse_url($appUrl, PHP_URL_SCHEME);
+                if ($scheme) {
+                    URL::forceScheme($scheme);
+                }
             }
         }
 

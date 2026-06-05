@@ -13,6 +13,10 @@ class TrustHosts extends Middleware
      */
     public function hosts(): array
     {
+        if (app()->environment('local', 'docker')) {
+            return ['.*'];
+        }
+
         return [
             $this->allSubdomainsOfApplicationUrl(),
         ];

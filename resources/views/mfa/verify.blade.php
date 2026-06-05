@@ -58,16 +58,9 @@
             </form>
 
             <div class="mt-6 border-t pt-4 text-center">
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-
-                    <button
-                        type="submit"
-                        class="text-sm text-gray-500 hover:text-gray-700 transition-colors"
-                    >
-                        Cerrar sesión
-                    </button>
-                </form>
+                <a href="/" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                    &larr; Volver al inicio
+                </a>
             </div>
 
         </div>

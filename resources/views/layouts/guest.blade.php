@@ -13,6 +13,9 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <style>
+            .grecaptcha-badge { bottom: 20px !important; box-shadow: 0 2px 8px rgba(0,0,0,.12) !important; border-radius: 4px !important; }
+        </style>
         @php
             $recaptchaSiteKey = config('services.recaptcha.sitekey') ?? env('RECAPTCHA_SITE_KEY');
         @endphp
@@ -86,16 +89,20 @@
     </head>
     <body class="font-sans text-gray-900 antialiased">
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
-            <div>
+            <div class="text-center">
                 <a href="/">
                     <x-application-logo class="w-20 h-20 fill-current text-gray-500" />
                 </a>
+                <div class="mt-2">
+                    <a href="/" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                        &larr; Volver al inicio
+                    </a>
+                </div>
             </div>
 
             <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">
                 {{ $slot }}
             </div>
         </div>
-    </script>
     </body>
 </html>

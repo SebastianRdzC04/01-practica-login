@@ -3,11 +3,11 @@
         <div class="bg-white p-6">
 
             <h2 class="text-xl font-semibold text-gray-900 text-center">
-                Windows Hello
+                Verificacion biometrica
             </h2>
 
             <p class="mt-2 text-sm text-gray-600 text-center">
-                Utiliza reconocimiento facial, huella digital o PIN para completar la autenticación.
+                Utiliza tu huella digital, Face ID o Windows Hello para completar la autenticacion.
             </p>
 
             <div
@@ -25,11 +25,11 @@
                 data-home-url="{{ route('home.redirect') }}"
                 class="mt-6 w-full px-4 py-3 bg-emerald-100 hover:bg-emerald-50 font-medium rounded-lg transition-colors"
             >
-                Autenticar con Windows Hello
+                Autenticar con biometria
             </button>
 
             <p class="mt-4 text-xs text-center text-gray-500">
-                Se abrirá una ventana segura de Windows para verificar tu identidad.
+                Se abrira una ventana segura para verificar tu identidad mediante biometria.
             </p>
 
         </div>
@@ -72,7 +72,7 @@ document.getElementById('auth').addEventListener('click', async () => {
         button.textContent = 'Procesando...';
 
         status.textContent =
-            'Solicitando opciones de autenticación...';
+            'Solicitando opciones de autenticacion...';
 
         const resp = await fetch(urls.assertion, {
             credentials: 'same-origin'
@@ -106,7 +106,7 @@ document.getElementById('auth').addEventListener('click', async () => {
         }
 
         status.textContent =
-            'Esperando confirmación de Windows Hello...';
+            'Esperando confirmacion biometrica...';
 
         const assertion =
             await navigator.credentials.get({
@@ -184,12 +184,12 @@ document.getElementById('auth').addEventListener('click', async () => {
             const data = await r.json();
 
             throw new Error(
-                data.message || 'Autenticación fallida'
+                data.message || 'Autenticacion fallida'
             );
         }
 
         status.textContent =
-            'Autenticación completada. Redirigiendo...';
+            'Autenticacion completada. Redirigiendo...';
 
         setTimeout(() => {
             window.location = urls.home;
@@ -202,7 +202,7 @@ document.getElementById('auth').addEventListener('click', async () => {
 
         button.disabled = false;
         button.textContent =
-            'Autenticar con Windows Hello';
+            'Autenticar con biometria';
     }
 });
 </script>

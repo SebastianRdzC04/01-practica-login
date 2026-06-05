@@ -3,11 +3,11 @@
         <div class="bg-white p-6">
 
             <h2 class="text-xl font-semibold text-gray-900 text-center">
-                Registrar Windows Hello
+                Registrar dispositivo biometrico
             </h2>
 
             <p class="mt-2 text-sm text-gray-600 text-center">
-                Registra Windows Hello como factor adicional de autenticación.
+                Registra tu huella digital, Face ID o Windows Hello como factor adicional de autenticacion.
             </p>
 
             <div
@@ -25,11 +25,11 @@
                 data-home-url="{{ route('home.redirect') }}"
                 class="mt-6 w-full px-4 py-3 bg-emerald-100 hover:bg-emerald-50 font-medium rounded-lg transition-colors"
             >
-                Registrar Windows Hello
+                Registrar dispositivo
             </button>
 
             <p class="mt-4 text-xs text-center text-gray-500">
-                Windows mostrará una ventana segura para registrar tu dispositivo.
+                El navegador mostrara una ventana segura para registrar tu dispositivo biometrico.
             </p>
 
         </div>
@@ -100,7 +100,7 @@ document.getElementById('start').addEventListener('click', async () => {
             );
 
         status.textContent =
-            'Esperando confirmación de Windows Hello...';
+            'Esperando confirmacion del dispositivo biometrico...';
 
         const cred =
             await navigator.credentials.create({
@@ -176,7 +176,7 @@ document.getElementById('start').addEventListener('click', async () => {
 
         button.disabled = false;
         button.textContent =
-            'Registrar Windows Hello';
+            'Registrar dispositivo';
     }
 });
 </script>
