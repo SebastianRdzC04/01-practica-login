@@ -10,6 +10,7 @@ services:
       - ./:/var/www/html
     ports:
       - "8080:8000"
+      - "8443:8443"
       - "5173:5173"
     environment:
       APP_NAME: Laravel

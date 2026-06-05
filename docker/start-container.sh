@@ -43,6 +43,25 @@ until gosu sail php -r '$uri = getenv("MONGO_URI") ?: "mongodb://mongo:27017"; $
     sleep 2
 done
 
+# Generate self-signed SSL cert for HTTPS (WebAuthn requires secure context)
+SSL_DIR=/etc/nginx/ssl
+mkdir -p "$SSL_DIR"
+if [ ! -f "$SSL_DIR/server.crt" ]; then
+    SAN="DNS:localhost,IP:127.0.0.1,DNS:host.docker.internal"
+    if [ -n "${APP_DOMAIN:-}" ]; then
+        SAN="${SAN},DNS:${APP_DOMAIN},IP:${APP_DOMAIN}"
+    fi
+    openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+        -keyout "$SSL_DIR/server.key" \
+        -out "$SSL_DIR/server.crt" \
+        -subj "/CN=local-dev" \
+        -addext "subjectAltName=${SAN}" 2>/dev/null || \
+    openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+        -keyout "$SSL_DIR/server.key" \
+        -out "$SSL_DIR/server.crt" \
+        -subj "/CN=local-dev"
+fi
+
 rm -f bootstrap/cache/config.php bootstrap/cache/routes-v7.php bootstrap/cache/packages.php bootstrap/cache/services.php
 
 gosu sail php artisan config:clear
