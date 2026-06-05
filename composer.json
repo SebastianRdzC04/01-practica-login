@@ -11,6 +11,7 @@
         "laragear/webauthn": "3.0",
         "laravel/framework": "^10.10",
         "laravel/sanctum": "^3.3",
+        "laravel/socialite": "^5.27",
         "laravel/tinker": "^2.8",
         "mongodb/mongodb": "^2.1",
         "pragmarx/google2fa": "^9.0"

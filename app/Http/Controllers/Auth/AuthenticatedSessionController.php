@@ -10,6 +10,7 @@ use App\Support\LoginLockout;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
@@ -41,11 +42,19 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        $email = $request->string('email');
+        $user = User::where('email', $email)->first();
+
+        if ($user && $user->google_id && !$user->password) {
+            throw ValidationException::withMessages([
+                'email' => 'Este correo esta registrado con Google. Inicia sesion con Google.',
+            ]);
+        }
+
         $request->authenticate();
 
         $request->session()->regenerate();
 
-        $email = $request->string('email');
         $user = User::where('email', $email)->firstOrFail();
 
         $request->session()->put('pending_auth_user_id', $user->id);

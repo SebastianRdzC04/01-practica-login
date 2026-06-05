@@ -31,6 +31,8 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
         'email',
         'role',
         'password',
+        'google_id',
+        'google_avatar',
     ];
 
     /**
