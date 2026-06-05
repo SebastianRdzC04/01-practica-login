@@ -65,29 +65,18 @@ Route::middleware('auth')->group(function () {
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
+});
 
-    Route::get('mfa/verify', [\App\Http\Controllers\TwoFactorController::class, 'showVerify'])
-    ->name('mfa.verify');
+Route::middleware('pending.auth')->group(function () {
+    Route::get('mfa/setup', [\App\Http\Controllers\TwoFactorController::class, 'showSetup'])->name('mfa.setup');
+    Route::post('mfa/confirm', [\App\Http\Controllers\TwoFactorController::class, 'confirmSetup'])->name('mfa.confirm');
+    Route::get('mfa/verify', [\App\Http\Controllers\TwoFactorController::class, 'showVerify'])->name('mfa.verify');
+    Route::post('mfa/verify', [\App\Http\Controllers\TwoFactorController::class, 'verify'])->name('mfa.verify.post');
 
-    Route::post('mfa/verify', [\App\Http\Controllers\TwoFactorController::class, 'verify'])
-        ->name('mfa.verify.post');
-
-    // WebAuthn (Windows Hello) setup & authentication for admin
-    Route::get('mfa/webauthn/setup', [\App\Http\Controllers\WebAuthnController::class, 'showSetup'])
-        ->name('mfa.webauthn.setup');
-
-    Route::get('mfa/webauthn/options', [\App\Http\Controllers\WebAuthnController::class, 'options'])
-        ->name('mfa.webauthn.options');
-
-    Route::post('mfa/webauthn/register', [\App\Http\Controllers\WebAuthnController::class, 'register'])
-        ->name('mfa.webauthn.register');
-
-    Route::get('mfa/webauthn/auth', [\App\Http\Controllers\WebAuthnController::class, 'showAuthenticate'])
-        ->name('mfa.webauthn.auth');
-
-    Route::get('mfa/webauthn/assertion-options', [\App\Http\Controllers\WebAuthnController::class, 'assertionOptions'])
-        ->name('mfa.webauthn.assertion-options');
-
-    Route::post('mfa/webauthn/authenticate', [\App\Http\Controllers\WebAuthnController::class, 'authenticate'])
-        ->name('mfa.webauthn.authenticate');
+    Route::get('mfa/webauthn/setup', [\App\Http\Controllers\WebAuthnController::class, 'showSetup'])->name('mfa.webauthn.setup');
+    Route::get('mfa/webauthn/options', [\App\Http\Controllers\WebAuthnController::class, 'options'])->name('mfa.webauthn.options');
+    Route::post('mfa/webauthn/register', [\App\Http\Controllers\WebAuthnController::class, 'register'])->name('mfa.webauthn.register');
+    Route::get('mfa/webauthn/auth', [\App\Http\Controllers\WebAuthnController::class, 'showAuthenticate'])->name('mfa.webauthn.auth');
+    Route::get('mfa/webauthn/assertion-options', [\App\Http\Controllers\WebAuthnController::class, 'assertionOptions'])->name('mfa.webauthn.assertion-options');
+    Route::post('mfa/webauthn/authenticate', [\App\Http\Controllers\WebAuthnController::class, 'authenticate'])->name('mfa.webauthn.authenticate');
 });

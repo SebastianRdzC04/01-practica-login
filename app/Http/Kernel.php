@@ -29,7 +29,9 @@ use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use App\Http\Middleware\EnsurePendingAuth;
 use App\Http\Middleware\EnsureTwoFactorConfigured;
+use App\Http\Middleware\SecurityHeadersMiddleware;
 
 class Kernel extends HttpKernel
 {
@@ -63,6 +65,7 @@ class Kernel extends HttpKernel
             ShareErrorsFromSession::class,
             VerifyCsrfToken::class,
             SubstituteBindings::class,
+            SecurityHeadersMiddleware::class,
         ],
 
         'api' => [
@@ -95,5 +98,6 @@ class Kernel extends HttpKernel
         'log.route.visit' => LogRouteVisit::class,
         'inactivity.protected' => ProtectSessionFromInactivity::class,
         'ensure.mfa' => EnsureTwoFactorConfigured::class,
+        'pending.auth' => EnsurePendingAuth::class,
     ];
 }

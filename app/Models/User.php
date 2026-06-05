@@ -2,15 +2,16 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Laragear\WebAuthn\Contracts\WebAuthnAuthenticatable;
+use Laragear\WebAuthn\WebAuthnAuthentication;
 
-class User extends Authenticatable
+class User extends Authenticatable implements WebAuthnAuthenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, WebAuthnAuthentication;
 
     public const ROLE_CLIENT = 'cliente';
 
@@ -74,14 +75,13 @@ class User extends Authenticatable
         return $map[$this->role] ?? ['password'];
     }
 
-    public function webauthnCredentials()
-    {
-        return $this->hasMany(WebAuthnCredential::class);
-    }
-
+    /**
+     * Returns the WebAuthn credentials from the package-provided trait.
+     * The WebAuthnAuthentication trait adds the webAuthnCredentials() morphMany relationship.
+     */
     public function hasWebauthnEnabled(): bool
     {
-        return $this->webauthnCredentials()->exists();
+        return $this->webAuthnCredentials()->exists();
     }
 
 }

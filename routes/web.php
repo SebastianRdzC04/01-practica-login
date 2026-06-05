@@ -6,7 +6,6 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\TwoFactorController;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,12 +36,6 @@ Route::middleware(['auth', 'auth.session', 'log.route.visit', 'inactivity.protec
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-    // Two-factor setup routes (required if not configured)
-    Route::get('/mfa/setup', [TwoFactorController::class, 'showSetup'])->name('mfa.setup');
-    Route::post('/mfa/confirm', [TwoFactorController::class, 'confirmSetup'])->name('mfa.confirm');
-    Route::get('/mfa/verify', [TwoFactorController::class, 'showVerify'])->name('mfa.verify');
-    Route::post('/mfa/verify', [TwoFactorController::class, 'verify'])->name('mfa.verify.post');
 });
 
 require __DIR__.'/auth.php';

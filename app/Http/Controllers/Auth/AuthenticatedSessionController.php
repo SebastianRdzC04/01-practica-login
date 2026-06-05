@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\User;
 use App\Support\AuthLog;
 use App\Support\LoginLockout;
 use Illuminate\Http\RedirectResponse;
@@ -40,41 +41,39 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
-        // attempt authentication first
         $request->authenticate();
 
-        // regenerate session to prevent fixation
         $request->session()->regenerate();
 
-        $user = Auth::user();
+        $email = $request->string('email');
+        $user = User::where('email', $email)->firstOrFail();
 
-        // determine required factors for this user
+        $request->session()->put('pending_auth_user_id', $user->id);
+
         $required = $user->requiredFactors();
-
-        // always remove 'password' because it was already provided
         $pending = array_values(array_filter($required, fn($f) => $f !== 'password'));
 
-        // check for unconfigured required factors
         $unconfigured = [];
         foreach ($pending as $factor) {
             if ($factor === 'totp' && ! $user->two_factor_enabled) {
                 $unconfigured[] = 'totp';
             }
-            if ($factor === 'webauthn' && ! $user->webauthnCredentials()->exists()) {
+            if ($factor === 'webauthn' && ! $user->webAuthnCredentials()->exists()) {
                 $unconfigured[] = 'webauthn';
             }
-            // añadir comprobaciones para otros factores (webauthn, etc.)
         }
 
-        if (! empty($unconfigured)) {
-            // pedir configuracion del primer factor no configurado
-            return redirect()->route('mfa.setup');
-        }
-
-        // almacenar en sesión los factores pendientes (a verificar)
         session(['factors_required' => $pending, 'factors_passed' => []]);
 
-        // si hay factores pendientes, redirigir al flujo del primer factor
+        if (! empty($unconfigured)) {
+            if (in_array('totp', $unconfigured)) {
+                return redirect()->route('mfa.setup');
+            }
+            if (in_array('webauthn', $unconfigured)) {
+                return redirect()->route('mfa.webauthn.setup');
+            }
+        }
+
         if (! empty($pending)) {
             if ($pending[0] === 'totp') {
                 return redirect()->route('mfa.verify');
@@ -82,10 +81,11 @@ class AuthenticatedSessionController extends Controller
             if ($pending[0] === 'webauthn') {
                 return redirect()->route('mfa.webauthn.auth');
             }
-            // manejar otros factores según tu diseño
         }
 
-        // no hay factores adicionales — completar login
+        Auth::loginUsingId($user->id, $request->session()->pull('pending_auth_remember', false));
+        $request->session()->forget('pending_auth_user_id');
+
         return redirect()->intended(route($request->user()->homeRouteName()));
     }
 
@@ -94,7 +94,11 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
-        $request->session()->forget(['two_factor_passed','factors_required','factors_passed','mfa_secret']);
+        $request->session()->forget([
+            'two_factor_passed', 'factors_required', 'factors_passed',
+            'mfa_secret', 'pending_auth_user_id', 'pending_auth_remember',
+            'webauthn_challenge',
+        ]);
 
         Auth::guard('web')->logout();
 

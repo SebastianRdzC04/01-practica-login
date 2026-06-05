@@ -74,13 +74,27 @@ class TwoFactorController
             return back()->withErrors(['totp' => 'Código TOTP inválido'])->withInput();
         }
 
-        // save encrypted secret and mark enabled
         $user->two_factor_secret = encrypt($secret);
         $user->two_factor_enabled = true;
         $user->save();
 
-        // clear session temp secret
         $request->session()->forget('mfa_secret');
+
+        $factorsPassed = $request->session()->get('factors_passed', []);
+        $factorsPassed[] = 'totp';
+        $request->session()->put('factors_passed', array_unique($factorsPassed));
+
+        $required = $request->session()->get('factors_required', []);
+
+        if (in_array('webauthn', $required) && ! $user->webAuthnCredentials()->exists()) {
+            return redirect()->route('mfa.webauthn.setup');
+        }
+
+        $pendingId = $request->session()->pull('pending_auth_user_id');
+        $remember = $request->session()->pull('pending_auth_remember', false);
+        if ($pendingId) {
+            Auth::loginUsingId($pendingId, $remember);
+        }
 
         return redirect()->intended(route($request->user()->homeRouteName()));
     }
@@ -125,14 +139,26 @@ class TwoFactorController
         $factorsPassed[] = 'totp';
         $request->session()->put('factors_passed', array_unique($factorsPassed));
 
-        // comprobar si ya pasó todos
         $required = $request->session()->get('factors_required', []);
         $passed = $request->session()->get('factors_passed', []);
+
         if (empty($required) || count(array_intersect($required, $passed)) >= count($required)) {
+            $pendingId = $request->session()->pull('pending_auth_user_id');
+            $remember = $request->session()->pull('pending_auth_remember', false);
+            if ($pendingId) {
+                Auth::loginUsingId($pendingId, $remember);
+            }
             return redirect()->intended(route($request->user()->homeRouteName()));
         }
 
-        // si quedan factores pendientes, redirigir al siguiente (solo totp por ahora)
+        if (in_array('webauthn', $required) && ! in_array('webauthn', $passed)) {
+            $user = Auth::user();
+            if ($user && ! $user->webAuthnCredentials()->exists()) {
+                return redirect()->route('mfa.webauthn.setup');
+            }
+            return redirect()->route('mfa.webauthn.auth');
+        }
+
         return redirect()->route('home.redirect');
     }
 }

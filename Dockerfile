@@ -1,4 +1,4 @@
-FROM php:8.4-cli
+FROM php:8.4-fpm
 
 ARG WWWGROUP=1000
 ARG NODE_VERSION=20
@@ -29,11 +29,12 @@ RUN apt-get update \
         libcurl4-openssl-dev \
         mariadb-client \
         default-mysql-client \
+        nginx \
         gosu \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-RUN docker-php-ext-install intl pdo_mysql zip
+RUN docker-php-ext-install intl pdo_mysql zip opcache
 
 RUN pecl install mongodb \
     && docker-php-ext-enable mongodb
@@ -48,6 +49,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
     && groupadd --force -g ${WWWGROUP} sail \
     && useradd -ms /bin/bash --no-user-group -g ${WWWGROUP} -u 1337 sail
+
+COPY docker/nginx.conf /etc/nginx/sites-enabled/default
+COPY docker/php.ini $PHP_INI_DIR/conf.d/99-opcache.ini
 
 COPY docker/start-container.sh /usr/local/bin/start-container
 RUN chmod +x /usr/local/bin/start-container

@@ -81,7 +81,7 @@ document.getElementById('auth').addEventListener('click', async () => {
         }
 
         status.textContent = 'Autenticación completada. Redirigiendo...';
-        setTimeout(() => window.location = '/', 800);
+        setTimeout(() => window.location = '{{ route('home.redirect') }}', 800);
     } catch (e) {
         status.textContent = 'Error: ' + e.message;
     }

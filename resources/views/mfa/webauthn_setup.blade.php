@@ -76,7 +76,8 @@ document.getElementById('start').addEventListener('click', async () => {
             return;
         }
 
-        status.textContent = 'Registro exitoso. Puedes usar Windows Hello para autenticarte.';
+        status.textContent = 'Registro exitoso. Redirigiendo para completar autenticación...';
+        setTimeout(() => window.location = '{{ route('mfa.webauthn.auth') }}', 800);
     } catch (e) {
         status.textContent = 'Error: ' + e.message;
     }

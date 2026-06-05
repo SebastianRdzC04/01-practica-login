@@ -4,23 +4,18 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
-use App\Models\WebAuthnCredential;
+use Laragear\WebAuthn\Assertion\Validator\AssertionValidation;
+use Laragear\WebAuthn\Assertion\Validator\AssertionValidator;
+use Laragear\WebAuthn\Http\Requests\AssertedRequest;
+use Laragear\WebAuthn\Http\Requests\AssertionRequest;
+use Laragear\WebAuthn\Http\Requests\AttestationRequest;
+use Laragear\WebAuthn\Http\Requests\AttestedRequest;
+use Laragear\WebAuthn\JsonTransport;
 
 class WebAuthnController extends Controller
 {
-    public function __construct()
+    protected function ensureTotpPassed(Request $request): mixed
     {
-        $this->middleware('auth');
-    }
-
-    protected function ensureAdminAndTotpPassed(Request $request)
-    {
-        $user = Auth::user();
-        if (! $user || $user->role !== App\Models\User::ROLE_ADMIN) {
-            abort(403);
-        }
-
         $passed = $request->session()->get('factors_passed', []);
         if (! in_array('totp', $passed)) {
             return redirect()->route('mfa.verify');
@@ -30,166 +25,110 @@ class WebAuthnController extends Controller
 
     public function showSetup(Request $request)
     {
-        if ($resp = $this->ensureAdminAndTotpPassed($request)) {
+        if ($resp = $this->ensureTotpPassed($request)) {
             return $resp;
         }
 
         return view('mfa.webauthn_setup');
     }
 
-    public function options(Request $request)
+    public function options(AttestationRequest $request)
     {
-        if ($resp = $this->ensureAdminAndTotpPassed($request)) {
+        if ($resp = $this->ensureTotpPassed($request)) {
             return $resp;
         }
 
-        // If laragear/webauthn is installed, prefer its helper services.
-        if (! class_exists(\Laragear\WebAuthn\WebAuthn::class) && ! app()->bound('webauthn')) {
-            return response()->json(['error' => 'webauthn-not-installed','message' => 'Instala el paquete laragear/webauthn con: composer require laragear/webauthn'], 501);
-        }
+        $request->secureRegistration();
 
-        // Generate a lightweight publicKey creation options structure for the client.
-        $user = Auth::user();
+        $json = $request->toCreate();
 
-        $challenge = random_bytes(32);
-        $request->session()->put('webauthn_challenge', base64_encode($challenge));
+        $data = $json->toArray();
+        $data['authenticatorSelection']['authenticatorAttachment'] = 'platform';
+        $data['timeout'] = 120000;
 
-        $publicKey = [
-            'challenge' => base64_encode($challenge),
-            'rp' => ['name' => config('app.name')],
-            'user' => [
-                'id' => base64_encode((string) $user->id),
-                'name' => $user->email,
-                'displayName' => $user->name ?? $user->email,
-            ],
-            'pubKeyCredParams' => [
-                ['type' => 'public-key', 'alg' => -7], // ES256
-            ],
-            'timeout' => 60000,
-            'attestation' => 'direct',
-        ];
-
-        return response()->json(['publicKey' => $publicKey]);
+        return response()->json(['publicKey' => $data]);
     }
 
-    public function register(Request $request)
+    public function register(AttestedRequest $request)
     {
-        if ($resp = $this->ensureAdminAndTotpPassed($request)) {
+        if ($resp = $this->ensureTotpPassed($request)) {
             return $resp;
         }
 
-        if (! class_exists(\Laragear\WebAuthn\WebAuthn::class) && ! app()->bound('webauthn')) {
-            return response()->json(['error' => 'webauthn-not-installed','message' => 'Instala el paquete laragear/webauthn con: composer require laragear/webauthn'], 501);
+        $request->save(['alias' => 'Windows Hello']);
+
+        $factorsPassed = $request->session()->get('factors_passed', []);
+        $factorsPassed[] = 'webauthn';
+        $request->session()->put('factors_passed', array_unique($factorsPassed));
+
+        $required = $request->session()->get('factors_required', []);
+        $passed = $request->session()->get('factors_passed', []);
+
+        if (empty($required) || count(array_intersect($required, $passed)) >= count($required)) {
+            $pendingId = $request->session()->pull('pending_auth_user_id');
+            $remember = $request->session()->pull('pending_auth_remember', false);
+            if ($pendingId) {
+                Auth::loginUsingId($pendingId, $remember);
+            }
         }
 
-        // The client sends the raw credential response; delegate verification to the package if available.
-        try {
-            $payload = $request->input();
-
-            // Delegate to package/service if bound
-            if (app()->bound('webauthn')) {
-                $service = app('webauthn');
-                // expected API: register/finishRegistration - adapt if needed after installing package
-                $result = $service->finishRegistration($payload);
-                // $result expected to contain credential id, public key and sign count
-                $credentialId = $result['credential_id'] ?? null;
-                $publicKey = $result['public_key'] ?? null;
-                $signCount = $result['sign_count'] ?? 0;
-            } else {
-                // Fallback: store raw fields (not secure). Prefer installing the package.
-                $credentialId = $payload['id'] ?? null;
-                $publicKey = $payload['publicKey'] ?? null;
-                $signCount = 0;
-            }
-
-            if (! $credentialId || ! $publicKey) {
-                return response()->json(['error' => 'invalid_payload'], 422);
-            }
-
-            $cred = WebAuthnCredential::create([
-                'user_id' => Auth::id(),
-                'name' => $request->input('name') ?? 'Windows Hello',
-                'credential_id' => is_string($credentialId) ? $credentialId : json_encode($credentialId),
-                'public_key' => is_string($publicKey) ? $publicKey : json_encode($publicKey),
-                'sign_count' => $signCount,
-                'transports' => $request->input('transports') ?? null,
-            ]);
-
-            return response()->json(['ok' => true, 'credential' => $cred]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'exception','message' => $e->getMessage()], 500);
-        }
+        return response()->json(['ok' => true]);
     }
 
     public function showAuthenticate(Request $request)
     {
-        if ($resp = $this->ensureAdminAndTotpPassed($request)) {
+        if ($resp = $this->ensureTotpPassed($request)) {
             return $resp;
         }
 
         return view('mfa.webauthn_auth');
     }
 
-    public function assertionOptions(Request $request)
+    public function assertionOptions(AssertionRequest $request)
     {
-        if ($resp = $this->ensureAdminAndTotpPassed($request)) {
+        if ($resp = $this->ensureTotpPassed($request)) {
             return $resp;
         }
 
-        $user = Auth::user();
-        $creds = $user->webauthnCredentials()->get();
+        $json = $request->toVerify(Auth::user());
 
-        $allowCredentials = $creds->map(function ($c) {
-            return [
-                'type' => 'public-key',
-                'id' => $c->credential_id,
-            ];
-        })->all();
+        $data = $json->toArray();
+        $data['timeout'] = 120000;
 
-        $challenge = random_bytes(32);
-        $request->session()->put('webauthn_challenge', base64_encode($challenge));
-
-        $publicKey = [
-            'challenge' => base64_encode($challenge),
-            'timeout' => 60000,
-            'allowCredentials' => $allowCredentials,
-            'userVerification' => 'preferred',
-        ];
-
-        return response()->json(['publicKey' => $publicKey]);
+        return response()->json(['publicKey' => $data]);
     }
 
-    public function authenticate(Request $request)
+    public function authenticate(AssertedRequest $request)
     {
-        if ($resp = $this->ensureAdminAndTotpPassed($request)) {
-            return $resp;
-        }
-
-        if (! class_exists(\Laragear\WebAuthn\WebAuthn::class) && ! app()->bound('webauthn')) {
-            return response()->json(['error' => 'webauthn-not-installed','message' => 'Instala el paquete laragear/webauthn con: composer require laragear/webauthn'], 501);
-        }
-
         try {
-            $payload = $request->input();
+            $user = Auth::user();
 
-            if (app()->bound('webauthn')) {
-                $service = app('webauthn');
-                $result = $service->finishAuthentication($payload);
-                if (! ($result['verified'] ?? false)) {
-                    return response()->json(['error' => 'not_verified'], 422);
-                }
-            } else {
-                // Without the package we cannot securely verify assertions
-                return response()->json(['error' => 'webauthn-not-installed'], 501);
-            }
+            $validator = app(AssertionValidator::class);
+            $transport = new JsonTransport($request->validated());
+
+            $validator->send(new AssertionValidation($transport, $user))->thenReturn();
 
             $factorsPassed = $request->session()->get('factors_passed', []);
             $factorsPassed[] = 'webauthn';
             $request->session()->put('factors_passed', array_unique($factorsPassed));
 
+            $required = $request->session()->get('factors_required', []);
+            $passed = $request->session()->get('factors_passed', []);
+
+            if (empty($required) || count(array_intersect($required, $passed)) >= count($required)) {
+                $pendingId = $request->session()->pull('pending_auth_user_id');
+                $remember = $request->session()->pull('pending_auth_remember', false);
+                if ($pendingId) {
+                    Auth::loginUsingId($pendingId, $remember);
+                }
+            }
+
             return response()->json(['ok' => true]);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'exception','message' => $e->getMessage()], 500);
+            return response()->json([
+                'error' => 'not_verified',
+                'message' => $e->getMessage(),
+            ], 422);
         }
     }
 }
