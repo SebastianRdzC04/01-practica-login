@@ -1,85 +1,182 @@
 <x-guest-layout>
-<div class="max-w-2xl mx-auto py-12">
-    <div class="bg-white shadow overflow-hidden sm:rounded-lg p-6">
-        <h2 class="text-lg font-medium text-gray-900">Configurar Windows Hello (WebAuthn)</h2>
-        <p class="mt-2 text-sm text-gray-600">Registra Windows Hello (cara, huella, PIN) como tercer factor para el admin. Usa un dispositivo/ navegador que soporte WebAuthn (Edge, Chrome, etc.).</p>
+    <div class="max-w-md mx-auto">
+        <div class="bg-white p-6">
 
-        <div id="status" class="mt-4 text-sm text-gray-700">Preparando...</div>
+            <h2 class="text-xl font-semibold text-gray-900 text-center">
+                Registrar Windows Hello
+            </h2>
 
-        <div class="mt-6">
-            <button id="start" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md">Registrar Windows Hello</button>
+            <p class="mt-2 text-sm text-gray-600 text-center">
+                Registra Windows Hello como factor adicional de autenticación.
+            </p>
+
+            <div
+                id="status"
+                class="mt-6 rounded-lg bg-gray-50 border border-gray-200 px-4 py-3 text-sm text-gray-700 text-center"
+            >
+                Listo para comenzar.
+            </div>
+
+            <button
+                id="start"
+                type="button"
+                data-options-url="{{ route('mfa.webauthn.options') }}"
+                data-register-url="{{ route('mfa.webauthn.register') }}"
+                data-home-url="{{ route('home.redirect') }}"
+                class="mt-6 w-full px-4 py-3 bg-emerald-100 hover:bg-emerald-50 font-medium rounded-lg transition-colors"
+            >
+                Registrar Windows Hello
+            </button>
+
+            <p class="mt-4 text-xs text-center text-gray-500">
+                Windows mostrará una ventana segura para registrar tu dispositivo.
+            </p>
+
         </div>
     </div>
-</div>
 
 <script>
+const startBtn = document.getElementById('start');
+const urls = {
+    options: startBtn.dataset.optionsUrl,
+    register: startBtn.dataset.registerUrl,
+    home: startBtn.dataset.homeUrl,
+};
+
 async function b64ToBuffer(base64) {
     base64 = base64.replace(/-/g, '+').replace(/_/g, '/');
+
     const pad = base64.length % 4;
-    if (pad) base64 += '='.repeat(4 - pad);
+    if (pad) {
+        base64 += '='.repeat(4 - pad);
+    }
+
     const str = atob(base64);
     const buf = new Uint8Array(str.length);
-    for (let i = 0; i < str.length; i++) buf[i] = str.charCodeAt(i);
+
+    for (let i = 0; i < str.length; i++) {
+        buf[i] = str.charCodeAt(i);
+    }
+
     return buf.buffer;
 }
 
 document.getElementById('start').addEventListener('click', async () => {
+
     const status = document.getElementById('status');
-    status.textContent = 'Solicitando opciones al servidor...';
-
-    const resp = await fetch('{{ route('mfa.webauthn.options') }}', { credentials: 'same-origin' });
-    if (!resp.ok) {
-        const err = await resp.json();
-        status.textContent = err.message || 'Error obteniendo opciones';
-        return;
-    }
-    const body = await resp.json();
-    const publicKey = body.publicKey;
-
-    // convert base64 challenge and user.id
-    publicKey.challenge = new Uint8Array(await b64ToBuffer(publicKey.challenge));
-    publicKey.user.id = new Uint8Array(await b64ToBuffer(publicKey.user.id));
-
-    status.textContent = 'Abriendo diálogo de registro (Windows Hello)...';
+    const button = document.getElementById('start');
 
     try {
-        const cred = await navigator.credentials.create({ publicKey });
 
-        // prepare attestation to send to server
-        const clientDataJSON = btoa(String.fromCharCode(...new Uint8Array(cred.response.clientDataJSON)));
-        const attestationObject = btoa(String.fromCharCode(...new Uint8Array(cred.response.attestationObject)));
+        button.disabled = true;
+        button.textContent = 'Procesando...';
+
+        status.textContent =
+            'Solicitando opciones de registro...';
+
+        const resp = await fetch(urls.options, {
+            credentials: 'same-origin'
+        });
+
+        if (!resp.ok) {
+            const err = await resp.json();
+
+            throw new Error(
+                err.message || 'Error obteniendo opciones'
+            );
+        }
+
+        const body = await resp.json();
+        const publicKey = body.publicKey;
+
+        publicKey.challenge =
+            new Uint8Array(
+                await b64ToBuffer(publicKey.challenge)
+            );
+
+        publicKey.user.id =
+            new Uint8Array(
+                await b64ToBuffer(publicKey.user.id)
+            );
+
+        status.textContent =
+            'Esperando confirmación de Windows Hello...';
+
+        const cred =
+            await navigator.credentials.create({
+                publicKey
+            });
+
+        const clientDataJSON = btoa(
+            String.fromCharCode(
+                ...new Uint8Array(
+                    cred.response.clientDataJSON
+                )
+            )
+        );
+
+        const attestationObject = btoa(
+            String.fromCharCode(
+                ...new Uint8Array(
+                    cred.response.attestationObject
+                )
+            )
+        );
 
         const payload = {
             id: cred.id,
-            rawId: btoa(String.fromCharCode(...new Uint8Array(cred.rawId))),
+            rawId: btoa(
+                String.fromCharCode(
+                    ...new Uint8Array(cred.rawId)
+                )
+            ),
             type: cred.type,
             response: {
                 clientDataJSON,
-                attestationObject,
+                attestationObject
             }
         };
 
-        status.textContent = 'Enviando registro al servidor...';
-        const r = await fetch('{{ route('mfa.webauthn.register') }}', {
+        status.textContent =
+            'Registrando dispositivo...';
+
+        const r = await fetch(urls.register, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').getAttribute('content')
+                'X-CSRF-TOKEN':
+                    document
+                        .querySelector('meta[name=csrf-token]')
+                        .getAttribute('content')
             },
             credentials: 'same-origin',
-            body: JSON.stringify(payload),
+            body: JSON.stringify(payload)
         });
 
         if (!r.ok) {
+
             const data = await r.json();
-            status.textContent = data.message || 'Registro fallido';
-            return;
+
+            throw new Error(
+                data.message || 'Registro fallido'
+            );
         }
 
-        status.textContent = 'Registro exitoso. Redirigiendo para completar autenticación...';
-        setTimeout(() => window.location = '{{ route('mfa.webauthn.auth') }}', 800);
+        status.textContent =
+            'Registro completado. Redirigiendo...';
+
+        setTimeout(() => {
+            window.location = urls.home;
+        }, 800);
+
     } catch (e) {
-        status.textContent = 'Error: ' + e.message;
+
+        status.textContent =
+            e.message || 'Error inesperado';
+
+        button.disabled = false;
+        button.textContent =
+            'Registrar Windows Hello';
     }
 });
 </script>

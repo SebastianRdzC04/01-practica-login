@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
@@ -30,6 +31,14 @@ class PasswordResetLinkController extends Controller
         $request->validate([
             'email' => ['required', 'email'],
         ]);
+
+        // Only cliente role can self-reset via web
+        $user = User::where('email', $request->email)->first();
+        if ($user && $user->role !== 'cliente') {
+            throw ValidationException::withMessages([
+                'email' => __('Los usuarios con rol :role no pueden restablecer la contrasena por web. Contacta a un administrador.', ['role' => $user->role]),
+            ]);
+        }
 
         // Verify reCAPTCHA
         $token = $request->input('g-recaptcha-response');

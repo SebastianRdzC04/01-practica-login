@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html><head><meta charset='utf-8'><title>TOTP Setup</title>
+<style>body{font-family:sans-serif;text-align:center;padding:40px;}
+.qr{display:inline-block;margin:20px;padding:20px;border:1px solid #ddd;border-radius:8px;}
+.secret{font-family:monospace;font-size:18px;background:#f5f5f5;padding:8px;border-radius:4px;}</style>
+</head><body>
+<h1>Configuracion TOTP Doble</h1>
+<p>Escanea estos codigos con Google Authenticator en tu telefono</p>
+<div class='qr'><h2>Tu (Aprobador 1)</h2>
+<img src='data:image/svg+xml;base64,{}' width='250' height='250'/>
+<p class='secret'>{}</p></div>
+<div class='qr'><h2>Companero (Aprobador 2)</h2>
+<img src='data:image/svg+xml;base64,{}' width='250' height='250'/>
+<p class='secret'>{}</p></div>
+<p>Luego ejecuta: <code>php artisan user:reset-password admin@example.com</code></p>
+</body></html>

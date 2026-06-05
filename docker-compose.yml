@@ -34,7 +34,7 @@ services:
       QUEUE_CONNECTION: sync
       SESSION_DRIVER: file
       SESSION_LIFETIME: 120
-      MAIL_MAILER: log
+      MAIL_MAILER: smtp
       VITE_APP_NAME: Laravel
       RECAPTCHA_SITE_KEY: 6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI
       RECAPTCHA_SECRET: 6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe
@@ -43,6 +43,8 @@ services:
       mariadb:
         condition: service_healthy
       mongo:
+        condition: service_started
+      mailpit:
         condition: service_started
 
     healthcheck:
@@ -79,6 +81,14 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: practica-login-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
 
 volumes:
   mariadb_data:
