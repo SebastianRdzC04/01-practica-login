@@ -55,6 +55,15 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
         'password' => 'hashed',
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function (User $user) {
+            if ($user->password && $user->google_id) {
+                throw new \LogicException('A user cannot have both a password and a Google ID.');
+            }
+        });
+    }
+
     public function hasRole(string ...$roles): bool
     {
         return in_array($this->role, $roles, true);
@@ -68,13 +77,19 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
     public function requiredFactors(): array
     {
         $map = [
-            'cliente' => ['password'],       // solo contraseña
-            'usuario' => ['password','totp'],// password + totp
-            'administrador' => ['password','totp','webauthn'], // ejemplo con 3
+            'cliente' => ['password'],
+            'usuario' => ['password','totp'],
+            'administrador' => ['password','totp','webauthn'],
             'logger' => ['password','totp'],
         ];
 
-        return $map[$this->role] ?? ['password'];
+        $factors = $map[$this->role] ?? ['password'];
+
+        if ($this->google_id) {
+            $factors = array_values(array_filter($factors, fn($f) => $f !== 'password'));
+        }
+
+        return $factors;
     }
 
     /**

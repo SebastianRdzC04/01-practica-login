@@ -12,18 +12,38 @@ use Laravel\Socialite\Facades\Socialite;
 
 class GoogleLoginController extends Controller
 {
-    public function redirect(): RedirectResponse
+    public function redirect(Request $request): RedirectResponse
     {
-        return Socialite::driver('google')->redirect();
+        $redirectUrl = $request->getSchemeAndHttpHost() . '/auth/google/callback';
+
+        return Socialite::driver('google')
+            ->redirectUrl($redirectUrl)
+            ->redirect();
     }
 
     public function callback(Request $request): RedirectResponse
     {
         try {
-            $googleUser = Socialite::driver('google')->user();
+            $redirectUrl = $request->getSchemeAndHttpHost() . '/auth/google/callback';
+
+            $googleUser = Socialite::driver('google')
+                ->redirectUrl($redirectUrl)
+                ->user();
         } catch (\Exception $e) {
+            logger()->error('Google login error: ' . ($e->getMessage() ?: get_class($e)), [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
+            $message = 'Error al autenticar con Google. Intenta de nuevo.';
+            if (config('app.debug')) {
+                $debug = $e->getMessage() ?: get_class($e);
+                $message .= ' (' . $debug . ')';
+            }
+
             return redirect()->route('login')->withErrors([
-                'email' => 'Error al autenticar con Google. Intenta de nuevo.',
+                'email' => $message,
             ]);
         }
 

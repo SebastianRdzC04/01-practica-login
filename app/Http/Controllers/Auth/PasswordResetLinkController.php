@@ -32,12 +32,20 @@ class PasswordResetLinkController extends Controller
             'email' => ['required', 'email'],
         ]);
 
-        // Only cliente role can self-reset via web
+        // Only cliente role with password can self-reset via web
         $user = User::where('email', $request->email)->first();
-        if ($user && $user->role !== 'cliente') {
-            throw ValidationException::withMessages([
-                'email' => __('Los usuarios con rol :role no pueden restablecer la contrasena por web. Contacta a un administrador.', ['role' => $user->role]),
-            ]);
+        if ($user) {
+            if ($user->google_id) {
+                throw ValidationException::withMessages([
+                    'email' => __('Los usuarios registrados con Google no pueden restablecer contrasena. Inicia sesion con Google.'),
+                ]);
+            }
+
+            if ($user->role !== 'cliente') {
+                throw ValidationException::withMessages([
+                    'email' => __('Los usuarios con rol :role no pueden restablecer la contrasena por web. Contacta a un administrador.', ['role' => $user->role]),
+                ]);
+            }
         }
 
         // Verify reCAPTCHA
