@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Support\AuthLog;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,6 +22,13 @@ class NewPasswordController extends Controller
      */
     public function create(Request $request): View
     {
+        AuthLog::info('Password reset form viewed', [
+            'event' => AuthLog::EVENT_PASSWORD_RESET,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'message' => 'Formulario de restablecimiento de contrasena mostrado.',
+        ]);
+
         return view('auth.reset-password', ['request' => $request]);
     }
 
@@ -41,15 +49,20 @@ class NewPasswordController extends Controller
         $token = $request->input('g-recaptcha-response');
         if (config('services.recaptcha.secret') ?? env('RECAPTCHA_SECRET')) {
             if (! RecaptchaService::verify($token, $request->ip())) {
+                AuthLog::warning('Password reset reCAPTCHA failed', [
+                    'event' => AuthLog::EVENT_PASSWORD_RESET_FAILED,
+                    'succeeded' => false,
+                    'email' => $request->email,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'message' => 'reCAPTCHA fallo en restablecimiento de contrasena.',
+                ]);
                 throw ValidationException::withMessages([
                     'email' => 'reCAPTCHA verification failed.',
                 ]);
             }
         }
 
-        // Here we will attempt to reset the user's password. If it is successful we
-        // will update the password on an actual user model and persist it to the
-        // database. Otherwise we will parse the error and return the response.
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user) use ($request) {
@@ -62,10 +75,18 @@ class NewPasswordController extends Controller
             }
         );
 
-        // If the password was successfully reset, we will redirect the user back to
-        // the application's home authenticated view. If there is an error we can
-        // redirect them back to where they came from with their error message.
-        return $status == Password::PASSWORD_RESET
+        $reset = $status == Password::PASSWORD_RESET;
+
+        AuthLog::info('Password ' . ($reset ? 'reset successfully' : 'reset failed'), [
+            'event' => $reset ? AuthLog::EVENT_PASSWORD_RESET : AuthLog::EVENT_PASSWORD_RESET_FAILED,
+            'succeeded' => $reset,
+            'email' => $request->email,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'message' => $reset ? 'Contrasena restablecida exitosamente.' : 'Fallo al restablecer la contrasena.',
+        ]);
+
+        return $reset
                     ? redirect()->route('login')->with('status', __($status))
                     : back()->withInput($request->only('email'))
                         ->withErrors(['email' => __($status)]);

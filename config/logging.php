@@ -109,7 +109,7 @@ return [
 
         'auth' => [
             'driver' => 'monolog',
-            'level' => env('AUTH_LOG_LEVEL', env('LOG_LEVEL', 'info')),
+            'level' => env('AUTH_LOG_LEVEL', env('LOG_LEVEL', 'debug')),
             'handler' => App\Logging\AuthMongoHandler::class,
             'formatter' => MongoDBFormatter::class,
             'handler_with' => [

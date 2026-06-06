@@ -22,6 +22,13 @@ class RegisteredUserController extends Controller
      */
     public function create(): View
     {
+        AuthLog::info('Registration page viewed', [
+            'event' => AuthLog::EVENT_REGISTER_VIEW,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'message' => 'Pantalla de registro mostrada.',
+        ]);
+
         return view('auth.register');
     }
 
@@ -52,6 +59,14 @@ class RegisteredUserController extends Controller
         $token = $request->input('g-recaptcha-response');
         if (config('services.recaptcha.secret') ?? env('RECAPTCHA_SECRET')) {
             if (! RecaptchaService::verify($token, $request->ip())) {
+                AuthLog::warning('Registration reCAPTCHA failed', [
+                    'event' => AuthLog::EVENT_REGISTER_FAILED,
+                    'succeeded' => false,
+                    'email' => (string) $request->input('email'),
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'message' => 'reCAPTCHA fallo en registro.',
+                ]);
                 throw ValidationException::withMessages([
                     'email' => 'reCAPTCHA verification failed.',
                 ]);
@@ -63,6 +78,18 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'role' => User::ROLE_CLIENT,
             'password' => Hash::make($request->password),
+        ]);
+
+        AuthLog::info('User registered', [
+            'event' => AuthLog::EVENT_REGISTER_ATTEMPT,
+            'succeeded' => true,
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'role' => $user->role,
+            'guard' => 'web',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'message' => 'Usuario registrado exitosamente.',
         ]);
 
         event(new Registered($user));

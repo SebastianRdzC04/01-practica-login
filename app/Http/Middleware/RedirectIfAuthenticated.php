@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\AuthLog;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,7 +21,21 @@ class RedirectIfAuthenticated
 
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
-                return redirect(route(Auth::guard($guard)->user()->homeRouteName()));
+                $user = Auth::guard($guard)->user();
+
+                AuthLog::debug('Authenticated user redirected from guest page', [
+                    'event' => AuthLog::EVENT_ROUTE_VISIT,
+                    'route' => $request->route()?->getName(),
+                    'path' => $request->path(),
+                    'user_id' => $user?->id,
+                    'email' => $user?->email,
+                    'role' => $user?->role,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'message' => 'Usuario autenticado redirigido desde pagina de invitado.',
+                ]);
+
+                return redirect(route($user->homeRouteName()));
             }
         }
 

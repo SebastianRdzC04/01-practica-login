@@ -2,9 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\AuthLog;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class LogRouteVisit
@@ -16,12 +16,17 @@ class LogRouteVisit
         if ($request->isMethod('GET') && $response->isSuccessful()) {
             $user = $request->user();
 
-            Log::info('Protected view visited', [
+            AuthLog::debug('Protected view visited', [
+                'event' => AuthLog::EVENT_ROUTE_VISIT,
                 'route' => $request->route()?->getName(),
                 'path' => $request->path(),
+                'url' => $request->fullUrl(),
                 'user_id' => $user?->id,
+                'email' => $user?->email,
                 'role' => $user?->role,
                 'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'message' => 'Vista protegida visitada: ' . ($request->route()?->getName() ?? $request->path()),
             ]);
         }
 

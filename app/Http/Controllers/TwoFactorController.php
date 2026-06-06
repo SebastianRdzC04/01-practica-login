@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\AuthLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use PragmaRX\Google2FA\Google2FA;
@@ -18,9 +19,19 @@ class TwoFactorController
     {
         $user = Auth::user();
 
+        AuthLog::info('TOTP setup page viewed', [
+            'event' => AuthLog::EVENT_TOTP_SETUP_VIEW,
+            'succeeded' => true,
+            'user_id' => $user?->id,
+            'email' => $user?->email,
+            'role' => $user?->role,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'message' => 'Pantalla de configuracion TOTP mostrada.',
+        ]);
+
         $google2fa = new Google2FA();
 
-        // keep secret in session until user confirms
         $secret = $request->session()->get('mfa_secret');
         if (! $secret) {
             $secret = $google2fa->generateSecretKey();
@@ -46,10 +57,22 @@ class TwoFactorController
 
     public function confirmSetup(Request $request)
     {
+        $user = Auth::user();
+
         // Verify reCAPTCHA token
         $token = $request->input('g-recaptcha-response');
         if (config('services.recaptcha.secret') ?? env('RECAPTCHA_SECRET')) {
             if (! RecaptchaService::verify($token, $request->ip())) {
+                AuthLog::warning('TOTP setup reCAPTCHA failed', [
+                    'event' => AuthLog::EVENT_TOTP_SETUP_FAILED,
+                    'succeeded' => false,
+                    'user_id' => $user?->id,
+                    'email' => $user?->email,
+                    'role' => $user?->role,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'message' => 'reCAPTCHA fallo en configuracion TOTP.',
+                ]);
                 throw ValidationException::withMessages([
                     'totp' => 'reCAPTCHA verification failed.',
                 ]);
@@ -60,17 +83,36 @@ class TwoFactorController
             'totp' => ['required', 'digits:6'],
         ]);
 
-        $user = Auth::user();
         $google2fa = new Google2FA();
 
         $secret = $request->session()->get('mfa_secret');
         if (! $secret) {
+            AuthLog::warning('TOTP setup - session secret missing', [
+                'event' => AuthLog::EVENT_TOTP_SETUP_FAILED,
+                'succeeded' => false,
+                'user_id' => $user?->id,
+                'email' => $user?->email,
+                'role' => $user?->role,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'message' => 'Clave temporal TOTP no encontrada en sesion.',
+            ]);
             return redirect()->route('mfa.setup')->withErrors(['totp' => 'Clave temporal no encontrada, vuelve a generar el QR.']);
         }
 
         $valid = $google2fa->verifyKey($secret, $request->input('totp'));
 
         if (! $valid) {
+            AuthLog::warning('TOTP setup - invalid code', [
+                'event' => AuthLog::EVENT_TOTP_SETUP_FAILED,
+                'succeeded' => false,
+                'user_id' => $user?->id,
+                'email' => $user?->email,
+                'role' => $user?->role,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'message' => 'Codigo TOTP invalido durante configuracion.',
+            ]);
             return back()->withErrors(['totp' => 'Código TOTP inválido'])->withInput();
         }
 
@@ -84,9 +126,30 @@ class TwoFactorController
         $factorsPassed[] = 'totp';
         $request->session()->put('factors_passed', array_unique($factorsPassed));
 
+        AuthLog::info('TOTP configured successfully', [
+            'event' => AuthLog::EVENT_TOTP_SETUP_CONFIRM,
+            'succeeded' => true,
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'role' => $user->role,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'message' => 'TOTP configurado exitosamente.',
+        ]);
+
         $required = $request->session()->get('factors_required', []);
 
         if (in_array('webauthn', $required) && ! $user->webAuthnCredentials()->exists()) {
+            AuthLog::info('TOTP setup done - redirecting to WebAuthn setup', [
+                'event' => AuthLog::EVENT_MFA_REDIRECT,
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'role' => $user->role,
+                'factor' => 'webauthn_setup',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'message' => 'Redirigiendo a configuracion WebAuthn tras TOTP.',
+            ]);
             return redirect()->route('mfa.webauthn.setup');
         }
 
@@ -94,6 +157,18 @@ class TwoFactorController
         $remember = $request->session()->pull('pending_auth_remember', false);
         if ($pendingId) {
             Auth::loginUsingId($pendingId, $remember);
+
+            AuthLog::info('Full login completed after TOTP setup', [
+                'event' => AuthLog::EVENT_LOGIN_FULL,
+                'succeeded' => true,
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'role' => $user->role,
+                'guard' => 'web',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'message' => 'Inicio de sesion completo tras configurar TOTP.',
+            ]);
         }
 
         return redirect()->intended(route($request->user()->homeRouteName()));
@@ -101,14 +176,39 @@ class TwoFactorController
 
     public function showVerify(Request $request)
     {
+        $user = Auth::user();
+
+        AuthLog::info('TOTP verify page viewed', [
+            'event' => AuthLog::EVENT_TOTP_VERIFY_VIEW,
+            'user_id' => $user?->id,
+            'email' => $user?->email,
+            'role' => $user?->role,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'message' => 'Pantalla de verificacion TOTP mostrada.',
+        ]);
+
         return view('mfa.verify');
     }
+
     public function verify(Request $request)
     {
+        $user = Auth::user();
+
         // Verify reCAPTCHA token
         $token = $request->input('g-recaptcha-response');
         if (config('services.recaptcha.secret') ?? env('RECAPTCHA_SECRET')) {
             if (! RecaptchaService::verify($token, $request->ip())) {
+                AuthLog::warning('TOTP verify reCAPTCHA failed', [
+                    'event' => AuthLog::EVENT_TOTP_VERIFY_FAILED,
+                    'succeeded' => false,
+                    'user_id' => $user?->id,
+                    'email' => $user?->email,
+                    'role' => $user?->role,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'message' => 'reCAPTCHA fallo en verificacion TOTP.',
+                ]);
                 throw ValidationException::withMessages([
                     'totp' => 'reCAPTCHA verification failed.',
                 ]);
@@ -117,13 +217,29 @@ class TwoFactorController
 
         $request->validate(['totp' => ['required','digits:6']]);
 
-        $user = Auth::user();
         if (! $user) {
+            AuthLog::warning('TOTP verify - no user in session', [
+                'event' => AuthLog::EVENT_TOTP_VERIFY_FAILED,
+                'succeeded' => false,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'message' => 'No hay usuario en sesion para verificar TOTP.',
+            ]);
             return redirect()->route('login');
         }
 
         $secretEncrypted = $user->two_factor_secret;
         if (! $secretEncrypted) {
+            AuthLog::warning('TOTP verify - no secret configured', [
+                'event' => AuthLog::EVENT_TOTP_VERIFY_FAILED,
+                'succeeded' => false,
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'role' => $user->role,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'message' => 'No existe clave TOTP configurada para el usuario.',
+            ]);
             return redirect()->route('mfa.setup')->withErrors(['totp' => 'No existe clave TOTP, configura MFA primero.']);
         }
 
@@ -132,12 +248,33 @@ class TwoFactorController
         $valid = $google2fa->verifyKey($secret, $request->input('totp'));
 
         if (! $valid) {
+            AuthLog::warning('TOTP verify - invalid code', [
+                'event' => AuthLog::EVENT_TOTP_VERIFY_FAILED,
+                'succeeded' => false,
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'role' => $user->role,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'message' => 'Codigo TOTP invalido durante verificacion.',
+            ]);
             return back()->withErrors(['totp' => 'Código TOTP inválido.'])->withInput();
         }
 
         $factorsPassed = $request->session()->get('factors_passed', []);
         $factorsPassed[] = 'totp';
         $request->session()->put('factors_passed', array_unique($factorsPassed));
+
+        AuthLog::info('TOTP verified successfully', [
+            'event' => AuthLog::EVENT_TOTP_VERIFY,
+            'succeeded' => true,
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'role' => $user->role,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'message' => 'Verificacion TOTP exitosa.',
+        ]);
 
         $required = $request->session()->get('factors_required', []);
         $passed = $request->session()->get('factors_passed', []);
@@ -147,6 +284,18 @@ class TwoFactorController
             $remember = $request->session()->pull('pending_auth_remember', false);
             if ($pendingId) {
                 Auth::loginUsingId($pendingId, $remember);
+
+                AuthLog::info('Full login completed after TOTP verify', [
+                    'event' => AuthLog::EVENT_LOGIN_FULL,
+                    'succeeded' => true,
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'guard' => 'web',
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'message' => 'Inicio de sesion completo tras verificar TOTP.',
+                ]);
             }
             return redirect()->intended(route($request->user()->homeRouteName()));
         }
@@ -154,8 +303,28 @@ class TwoFactorController
         if (in_array('webauthn', $required) && ! in_array('webauthn', $passed)) {
             $user = Auth::user();
             if ($user && ! $user->webAuthnCredentials()->exists()) {
+                AuthLog::info('TOTP verified - redirecting to WebAuthn setup', [
+                    'event' => AuthLog::EVENT_MFA_REDIRECT,
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'factor' => 'webauthn_setup',
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'message' => 'Redirigiendo a configuracion WebAuthn tras TOTP.',
+                ]);
                 return redirect()->route('mfa.webauthn.setup');
             }
+            AuthLog::info('TOTP verified - redirecting to WebAuthn auth', [
+                'event' => AuthLog::EVENT_MFA_REDIRECT,
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'role' => $user->role,
+                'factor' => 'webauthn_auth',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'message' => 'Redirigiendo a autenticacion WebAuthn tras TOTP.',
+            ]);
             return redirect()->route('mfa.webauthn.auth');
         }
 

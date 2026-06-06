@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\AuthLog;
 use App\Support\InactivityProtection;
 use Closure;
 use Illuminate\Http\Request;
@@ -41,6 +42,19 @@ class ProtectSessionFromInactivity
 
             $session->invalidate();
             $session->regenerateToken();
+
+            AuthLog::warning('Session expired due to inactivity', [
+                'event' => AuthLog::EVENT_INACTIVITY_LOGOUT,
+                'succeeded' => false,
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'role' => $user->role,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'inactivity_seconds' => now()->timestamp - $lastActivityAt,
+                'server_timeout_seconds' => $serverTimeoutSeconds,
+                'message' => 'Sesion cerrada por inactividad.',
+            ]);
 
             return redirect()->route('login')->with('status', 'Tu sesion se cerro por inactividad.');
         }

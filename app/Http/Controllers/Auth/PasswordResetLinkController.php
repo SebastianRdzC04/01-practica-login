@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\AuthLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
@@ -18,6 +19,13 @@ class PasswordResetLinkController extends Controller
      */
     public function create(): View
     {
+        AuthLog::info('Password reset request page viewed', [
+            'event' => AuthLog::EVENT_PASSWORD_RESET_REQUEST,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'message' => 'Pantalla de solicitud de restablecimiento de contrasena mostrada.',
+        ]);
+
         return view('auth.forgot-password');
     }
 
@@ -32,16 +40,36 @@ class PasswordResetLinkController extends Controller
             'email' => ['required', 'email'],
         ]);
 
-        // Only cliente role with password can self-reset via web
         $user = User::where('email', $request->email)->first();
+
         if ($user) {
             if ($user->google_id) {
+                AuthLog::warning('Password reset blocked - Google user', [
+                    'event' => AuthLog::EVENT_PASSWORD_RESET_REQUEST_FAILED,
+                    'succeeded' => false,
+                    'email' => $request->email,
+                    'user_id' => $user->id,
+                    'role' => $user->role,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'message' => 'Usuario de Google intento restablecer contrasena.',
+                ]);
                 throw ValidationException::withMessages([
                     'email' => __('Los usuarios registrados con Google no pueden restablecer contrasena. Inicia sesion con Google.'),
                 ]);
             }
 
             if ($user->role !== 'cliente') {
+                AuthLog::warning('Password reset blocked - non-client role', [
+                    'event' => AuthLog::EVENT_PASSWORD_RESET_REQUEST_FAILED,
+                    'succeeded' => false,
+                    'email' => $request->email,
+                    'user_id' => $user->id,
+                    'role' => $user->role,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'message' => "Usuario con rol {$user->role} intento restablecer contrasena por web.",
+                ]);
                 throw ValidationException::withMessages([
                     'email' => __('Los usuarios con rol :role no pueden restablecer la contrasena por web. Contacta a un administrador.', ['role' => $user->role]),
                 ]);
@@ -52,20 +80,36 @@ class PasswordResetLinkController extends Controller
         $token = $request->input('g-recaptcha-response');
         if (config('services.recaptcha.secret') ?? env('RECAPTCHA_SECRET')) {
             if (! RecaptchaService::verify($token, $request->ip())) {
+                AuthLog::warning('Password reset reCAPTCHA failed', [
+                    'event' => AuthLog::EVENT_PASSWORD_RESET_REQUEST_FAILED,
+                    'succeeded' => false,
+                    'email' => $request->email,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'message' => 'reCAPTCHA fallo en solicitud de restablecimiento.',
+                ]);
                 throw ValidationException::withMessages([
                     'email' => 'reCAPTCHA verification failed.',
                 ]);
             }
         }
 
-        // We will send the password reset link to this user. Once we have attempted
-        // to send the link, we will examine the response then see the message we
-        // need to show to the user. Finally, we'll send out a proper response.
         $status = Password::sendResetLink(
             $request->only('email')
         );
 
-        return $status == Password::RESET_LINK_SENT
+        $sent = $status == Password::RESET_LINK_SENT;
+
+        AuthLog::info('Password reset link ' . ($sent ? 'sent' : 'failed'), [
+            'event' => $sent ? AuthLog::EVENT_PASSWORD_RESET_REQUEST : AuthLog::EVENT_PASSWORD_RESET_REQUEST_FAILED,
+            'succeeded' => $sent,
+            'email' => $request->email,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'message' => $sent ? 'Enlace de restablecimiento de contrasena enviado.' : 'Fallo al enviar enlace de restablecimiento.',
+        ]);
+
+        return $sent
                     ? back()->with('status', __($status))
                     : back()->withInput($request->only('email'))
                         ->withErrors(['email' => __($status)]);

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\AuthLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -30,6 +31,18 @@ class WebAuthnController extends Controller
             return $resp;
         }
 
+        $user = Auth::user();
+
+        AuthLog::info('WebAuthn setup page viewed', [
+            'event' => AuthLog::EVENT_WEBAUTHN_SETUP_VIEW,
+            'user_id' => $user?->id,
+            'email' => $user?->email,
+            'role' => $user?->role,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'message' => 'Pantalla de configuracion WebAuthn mostrada.',
+        ]);
+
         return view('mfa.webauthn_setup');
     }
 
@@ -57,7 +70,37 @@ class WebAuthnController extends Controller
             return $resp;
         }
 
-        $request->save(['alias' => $this->detectDeviceAlias($request)]);
+        $user = Auth::user();
+        $alias = $this->detectDeviceAlias($request);
+
+        try {
+            $request->save(['alias' => $alias]);
+
+            AuthLog::info('WebAuthn credential registered', [
+                'event' => AuthLog::EVENT_WEBAUTHN_REGISTER,
+                'succeeded' => true,
+                'user_id' => $user?->id,
+                'email' => $user?->email,
+                'role' => $user?->role,
+                'device_alias' => $alias,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'message' => 'Credencial WebAuthn registrada exitosamente.',
+            ]);
+        } catch (\Exception $e) {
+            AuthLog::error('WebAuthn registration failed', [
+                'event' => AuthLog::EVENT_WEBAUTHN_REGISTER_FAILED,
+                'succeeded' => false,
+                'user_id' => $user?->id,
+                'email' => $user?->email,
+                'role' => $user?->role,
+                'error' => $e->getMessage(),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'message' => 'Fallo el registro de credencial WebAuthn: ' . $e->getMessage(),
+            ]);
+            throw $e;
+        }
 
         $factorsPassed = $request->session()->get('factors_passed', []);
         $factorsPassed[] = 'webauthn';
@@ -71,6 +114,18 @@ class WebAuthnController extends Controller
             $remember = $request->session()->pull('pending_auth_remember', false);
             if ($pendingId) {
                 Auth::loginUsingId($pendingId, $remember);
+
+                AuthLog::info('Full login completed after WebAuthn register', [
+                    'event' => AuthLog::EVENT_LOGIN_FULL,
+                    'succeeded' => true,
+                    'user_id' => $user?->id,
+                    'email' => $user?->email,
+                    'role' => $user?->role,
+                    'guard' => 'web',
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'message' => 'Inicio de sesion completo tras registrar WebAuthn.',
+                ]);
             }
         }
 
@@ -82,6 +137,18 @@ class WebAuthnController extends Controller
         if ($resp = $this->ensureTotpPassed($request)) {
             return $resp;
         }
+
+        $user = Auth::user();
+
+        AuthLog::info('WebAuthn authenticate page viewed', [
+            'event' => AuthLog::EVENT_WEBAUTHN_AUTH_VIEW,
+            'user_id' => $user?->id,
+            'email' => $user?->email,
+            'role' => $user?->role,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'message' => 'Pantalla de autenticacion WebAuthn mostrada.',
+        ]);
 
         return view('mfa.webauthn_auth');
     }
@@ -103,9 +170,9 @@ class WebAuthnController extends Controller
 
     public function authenticate(AssertedRequest $request)
     {
-        try {
-            $user = Auth::user();
+        $user = Auth::user();
 
+        try {
             $validator = app(AssertionValidator::class);
             $transport = new JsonTransport($request->validated());
 
@@ -115,6 +182,17 @@ class WebAuthnController extends Controller
             $factorsPassed[] = 'webauthn';
             $request->session()->put('factors_passed', array_unique($factorsPassed));
 
+            AuthLog::info('WebAuthn authentication successful', [
+                'event' => AuthLog::EVENT_WEBAUTHN_AUTH,
+                'succeeded' => true,
+                'user_id' => $user?->id,
+                'email' => $user?->email,
+                'role' => $user?->role,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'message' => 'Autenticacion WebAuthn exitosa.',
+            ]);
+
             $required = $request->session()->get('factors_required', []);
             $passed = $request->session()->get('factors_passed', []);
 
@@ -123,11 +201,35 @@ class WebAuthnController extends Controller
                 $remember = $request->session()->pull('pending_auth_remember', false);
                 if ($pendingId) {
                     Auth::loginUsingId($pendingId, $remember);
+
+                    AuthLog::info('Full login completed after WebAuthn auth', [
+                        'event' => AuthLog::EVENT_LOGIN_FULL,
+                        'succeeded' => true,
+                        'user_id' => $user?->id,
+                        'email' => $user?->email,
+                        'role' => $user?->role,
+                        'guard' => 'web',
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                        'message' => 'Inicio de sesion completo tras autenticar WebAuthn.',
+                    ]);
                 }
             }
 
             return response()->json(['ok' => true]);
         } catch (\Exception $e) {
+            AuthLog::warning('WebAuthn authentication failed', [
+                'event' => AuthLog::EVENT_WEBAUTHN_AUTH_FAILED,
+                'succeeded' => false,
+                'user_id' => $user?->id,
+                'email' => $user?->email,
+                'role' => $user?->role,
+                'error' => $e->getMessage(),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'message' => 'Fallo la autenticacion WebAuthn: ' . $e->getMessage(),
+            ]);
+
             return response()->json([
                 'error' => 'not_verified',
                 'message' => $e->getMessage(),

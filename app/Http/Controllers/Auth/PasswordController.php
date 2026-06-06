@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Support\AuthLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,6 +19,8 @@ class PasswordController extends Controller
      */
     public function update(Request $request): RedirectResponse
     {
+        $user = $request->user();
+
         $validated = $request->validateWithBag('updatePassword', [
             'current_password' => ['required', 'current_password'],
             'password' => ['required', Password::defaults(), 'confirmed'],
@@ -27,17 +30,38 @@ class PasswordController extends Controller
         $token = $request->input('g-recaptcha-response');
         if (config('services.recaptcha.secret') ?? env('RECAPTCHA_SECRET')) {
             if (! RecaptchaService::verify($token, $request->ip())) {
+                AuthLog::warning('Password change reCAPTCHA failed', [
+                    'event' => AuthLog::EVENT_PASSWORD_CHANGE_FAILED,
+                    'succeeded' => false,
+                    'user_id' => $user?->id,
+                    'email' => $user?->email,
+                    'role' => $user?->role,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'message' => 'reCAPTCHA fallo en cambio de contrasena.',
+                ]);
                 throw ValidationException::withMessages([
                     'password' => 'reCAPTCHA verification failed.',
                 ]);
             }
         }
 
-        $request->user()->update([
+        $user->update([
             'password' => Hash::make($validated['password']),
         ]);
 
         Auth::logoutOtherDevices($validated['password']);
+
+        AuthLog::info('Password changed', [
+            'event' => AuthLog::EVENT_PASSWORD_CHANGE,
+            'succeeded' => true,
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'role' => $user->role,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'message' => 'Contrasena actualizada exitosamente.',
+        ]);
 
         return back()->with('status', 'password-updated');
     }

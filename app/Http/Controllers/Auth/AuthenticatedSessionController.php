@@ -46,6 +46,17 @@ class AuthenticatedSessionController extends Controller
         $user = User::where('email', $email)->first();
 
         if ($user && $user->google_id && !$user->password) {
+            AuthLog::warning('Google-only user attempted password login', [
+                'event' => AuthLog::EVENT_LOGIN_FAILED,
+                'succeeded' => false,
+                'email' => (string) $email,
+                'user_id' => $user->id,
+                'role' => $user->role,
+                'guard' => 'web',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'message' => 'Usuario registrado con Google intento login con contrasena.',
+            ]);
             throw ValidationException::withMessages([
                 'email' => 'Este correo esta registrado con Google. Inicia sesion con Google.',
             ]);
@@ -56,6 +67,18 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $user = User::where('email', $email)->firstOrFail();
+
+        AuthLog::info('Password factor succeeded', [
+            'event' => AuthLog::EVENT_LOGIN_SUCCESS,
+            'succeeded' => true,
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'role' => $user->role,
+            'guard' => 'web',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'message' => 'Factor de contraseña verificado correctamente.',
+        ]);
 
         $request->session()->put('pending_auth_user_id', $user->id);
 
@@ -76,18 +99,58 @@ class AuthenticatedSessionController extends Controller
 
         if (! empty($unconfigured)) {
             if (in_array('totp', $unconfigured)) {
+                AuthLog::info('Redirecting to TOTP setup', [
+                    'event' => AuthLog::EVENT_MFA_REDIRECT,
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'factor' => 'totp_setup',
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'message' => 'Redirigiendo a configuracion TOTP.',
+                ]);
                 return redirect()->route('mfa.setup');
             }
             if (in_array('webauthn', $unconfigured)) {
+                AuthLog::info('Redirecting to WebAuthn setup', [
+                    'event' => AuthLog::EVENT_MFA_REDIRECT,
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'factor' => 'webauthn_setup',
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'message' => 'Redirigiendo a configuracion WebAuthn.',
+                ]);
                 return redirect()->route('mfa.webauthn.setup');
             }
         }
 
         if (! empty($pending)) {
             if ($pending[0] === 'totp') {
+                AuthLog::info('Redirecting to TOTP verify', [
+                    'event' => AuthLog::EVENT_MFA_REDIRECT,
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'factor' => 'totp_verify',
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'message' => 'Redirigiendo a verificacion TOTP.',
+                ]);
                 return redirect()->route('mfa.verify');
             }
             if ($pending[0] === 'webauthn') {
+                AuthLog::info('Redirecting to WebAuthn auth', [
+                    'event' => AuthLog::EVENT_MFA_REDIRECT,
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'factor' => 'webauthn_auth',
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'message' => 'Redirigiendo a autenticacion WebAuthn.',
+                ]);
                 return redirect()->route('mfa.webauthn.auth');
             }
         }
@@ -95,14 +158,25 @@ class AuthenticatedSessionController extends Controller
         Auth::loginUsingId($user->id, $request->session()->pull('pending_auth_remember', false));
         $request->session()->forget('pending_auth_user_id');
 
+        AuthLog::info('Full login completed (no MFA required)', [
+            'event' => AuthLog::EVENT_LOGIN_FULL,
+            'succeeded' => true,
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'role' => $user->role,
+            'guard' => 'web',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'message' => 'Inicio de sesion completo sin MFA.',
+        ]);
+
         return redirect()->intended(route($request->user()->homeRouteName()));
     }
 
-    /**
-     * Destroy an authenticated session.
-     */
     public function destroy(Request $request): RedirectResponse
     {
+        $user = $request->user();
+
         $request->session()->forget([
             'two_factor_passed', 'factors_required', 'factors_passed',
             'mfa_secret', 'pending_auth_user_id', 'pending_auth_remember',
@@ -115,6 +189,19 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
+        AuthLog::info('User logged out', [
+            'event' => AuthLog::EVENT_LOGOUT,
+            'succeeded' => true,
+            'user_id' => $user?->id,
+            'email' => $user?->email,
+            'role' => $user?->role,
+            'guard' => 'web',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'message' => 'Sesion cerrada exitosamente.',
+        ]);
+
         return redirect('/');
     }
+
 }

@@ -47,7 +47,6 @@ class LoginRequest extends FormRequest
 
         AuthLog::info('Authentication attempt received', [
             'event' => AuthLog::EVENT_LOGIN_ATTEMPT,
-            'succeeded' => false,
             'email' => (string) $this->string('email'),
             'guard' => 'web',
             'ip_address' => $this->ip(),
@@ -97,6 +96,18 @@ class LoginRequest extends FormRequest
 
         if (! $user || ! Hash::check($this->string('password'), $user->password)) {
             RateLimiter::hit($this->throttleKey());
+
+            AuthLog::warning('Authentication failed', [
+                'event' => AuthLog::EVENT_LOGIN_FAILED,
+                'succeeded' => false,
+                'email' => (string) $this->string('email'),
+                'user_id' => $user?->id,
+                'role' => $user?->role,
+                'guard' => 'web',
+                'ip_address' => $this->ip(),
+                'user_agent' => $this->userAgent(),
+                'message' => 'Credenciales invalidas.',
+            ]);
 
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
