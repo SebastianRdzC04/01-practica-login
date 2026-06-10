@@ -14,14 +14,14 @@ class ClientAreaController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        AuthLog::debug('Client area viewed', [
+        AuthLog::info('Client area viewed', [
             'event' => AuthLog::EVENT_ROUTE_VISIT,
             'user_id' => $user->id,
             'email' => $user->email,
             'role' => $user->role,
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
-            'message' => 'Area de cliente visitada.',
+            'message' => 'Area de cliente visitada por: ' . $user->email . '.',
         ]);
 
         return view('client.home', [

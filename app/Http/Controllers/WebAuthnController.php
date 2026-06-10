@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Support\AuthLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Laragear\WebAuthn\Assertion\Validator\AssertionValidation;
 use Laragear\WebAuthn\Assertion\Validator\AssertionValidator;
@@ -19,10 +20,17 @@ class WebAuthnController extends Controller
     protected function ensureTotpPassed(Request $request): mixed
     {
         $passed = $request->session()->get('factors_passed', []);
-        if (! in_array('totp', $passed)) {
-            return redirect()->route('mfa.verify');
+        if (in_array('totp', $passed)) {
+            return null;
         }
-        return null;
+
+        $user = Auth::user();
+        if ($user && $user->two_factor_enabled && ! $request->session()->has('pending_auth_user_id')) {
+            $request->session()->put('factors_passed', ['totp']);
+            return null;
+        }
+
+        return redirect()->route('mfa.verify');
     }
 
     public function showSetup(Request $request)
@@ -172,11 +180,32 @@ class WebAuthnController extends Controller
     {
         $user = Auth::user();
 
+        $rateLimitKey = 'mfa-webauthn:' . ($user?->id ?? request()->ip());
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 3)) {
+            $seconds = RateLimiter::availableIn($rateLimitKey);
+            AuthLog::warning('WebAuthn authentication rate limited', [
+                'event' => AuthLog::EVENT_WEBAUTHN_AUTH_FAILED,
+                'succeeded' => false,
+                'user_id' => $user?->id,
+                'email' => $user?->email,
+                'role' => $user?->role,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'message' => 'Demasiados intentos WebAuthn.',
+            ]);
+            return response()->json([
+                'error' => 'rate_limited',
+                'message' => 'Demasiados intentos. Intenta de nuevo en ' . ceil($seconds / 60) . ' minutos.',
+            ], 429);
+        }
+
         try {
             $validator = app(AssertionValidator::class);
             $transport = new JsonTransport($request->validated());
 
             $validator->send(new AssertionValidation($transport, $user))->thenReturn();
+
+            RateLimiter::clear($rateLimitKey);
 
             $factorsPassed = $request->session()->get('factors_passed', []);
             $factorsPassed[] = 'webauthn';
@@ -218,6 +247,7 @@ class WebAuthnController extends Controller
 
             return response()->json(['ok' => true]);
         } catch (\Exception $e) {
+            RateLimiter::hit($rateLimitKey, 60);
             AuthLog::warning('WebAuthn authentication failed', [
                 'event' => AuthLog::EVENT_WEBAUTHN_AUTH_FAILED,
                 'succeeded' => false,

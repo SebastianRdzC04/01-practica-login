@@ -38,12 +38,12 @@
     </div>
 
 <script>
-(function() {
-    var d = document.getElementById('diag');
-    if (d) {
-        d.textContent = 'isSecureContext=' + window.isSecureContext + ' | hasCredentialsAPI=' + ('credentials' in navigator) + ' | protocol=' + location.protocol + ' | host=' + location.host;
-    }
-})();
+//(function() {
+//    var d = document.getElementById('diag');
+//   if (d) {
+//        d.textContent = 'isSecureContext=' + window.isSecureContext + ' | hasCredentialsAPI=' + ('credentials' in navigator) + ' | protocol=' + location.protocol + ' | host=' + location.host;
+//    }
+//})();
 
 const authBtn = document.getElementById('auth');
 const urls = {

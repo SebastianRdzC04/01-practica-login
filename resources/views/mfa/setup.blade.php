@@ -65,8 +65,7 @@
                     </script>
 
                     <p class="mt-2 text-xs text-gray-500">
-                        Guarda esta clave en un lugar seguro. Te permitirá recuperar
-                        el acceso si pierdes tu dispositivo autenticador.
+                        Guarda esta clave en un lugar seguro.
                     </p>
                 </div>
             </div>

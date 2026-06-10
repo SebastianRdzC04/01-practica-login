@@ -14,14 +14,14 @@ class DashboardController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        AuthLog::debug('Dashboard viewed', [
+        AuthLog::info('Dashboard viewed', [
             'event' => AuthLog::EVENT_ROUTE_VISIT,
             'user_id' => $user->id,
             'email' => $user->email,
             'role' => $user->role,
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
-            'message' => 'Dashboard visitado.',
+            'message' => 'Dashboard visitado por ' . $user->role . ': ' . $user->email . '.',
         ]);
 
         return view('dashboard', [

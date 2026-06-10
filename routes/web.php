@@ -33,9 +33,15 @@ Route::middleware(['auth', 'auth.session', 'log.route.visit', 'inactivity.protec
         ->middleware('role:usuario,administrador,logger')
         ->name('dashboard');
 
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/profile', [ProfileController::class, 'edit'])
+        ->middleware('role:cliente')
+        ->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])
+        ->middleware('role:cliente')
+        ->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])
+        ->middleware('role:cliente')
+        ->name('profile.destroy');
 });
 
 require __DIR__.'/auth.php';

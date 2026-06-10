@@ -11,6 +11,7 @@ use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
 use App\Services\RecaptchaService;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 
 class TwoFactorController
@@ -195,6 +196,24 @@ class TwoFactorController
     {
         $user = Auth::user();
 
+        $rateLimitKey = 'mfa-totp:' . ($user?->id ?? $request->session()->get('pending_auth_user_id', request()->ip()));
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 3)) {
+            $seconds = RateLimiter::availableIn($rateLimitKey);
+            AuthLog::warning('TOTP verify rate limited', [
+                'event' => AuthLog::EVENT_TOTP_VERIFY_FAILED,
+                'succeeded' => false,
+                'user_id' => $user?->id,
+                'email' => $user?->email,
+                'role' => $user?->role,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'message' => 'Demasiados intentos TOTP.',
+            ]);
+            throw ValidationException::withMessages([
+                'totp' => 'Demasiados intentos. Intenta de nuevo en ' . ceil($seconds / 60) . ' minutos.',
+            ]);
+        }
+
         // Verify reCAPTCHA token
         $token = $request->input('g-recaptcha-response');
         if (config('services.recaptcha.secret') ?? env('RECAPTCHA_SECRET')) {
@@ -248,6 +267,7 @@ class TwoFactorController
         $valid = $google2fa->verifyKey($secret, $request->input('totp'));
 
         if (! $valid) {
+            RateLimiter::hit($rateLimitKey, 60);
             AuthLog::warning('TOTP verify - invalid code', [
                 'event' => AuthLog::EVENT_TOTP_VERIFY_FAILED,
                 'succeeded' => false,
@@ -260,6 +280,8 @@ class TwoFactorController
             ]);
             return back()->withErrors(['totp' => 'Código TOTP inválido.'])->withInput();
         }
+
+        RateLimiter::clear($rateLimitKey);
 
         $factorsPassed = $request->session()->get('factors_passed', []);
         $factorsPassed[] = 'totp';
