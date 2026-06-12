@@ -24,7 +24,7 @@
         <env name="BCRYPT_ROUNDS" value="4" force="true"/>
         <env name="CACHE_DRIVER" value="array" force="true"/>
         <env name="DB_CONNECTION" value="mysql" force="true"/>
-        <env name="DB_HOST" value="mariadb-test" force="true"/>
+        <env name="DB_HOST" value="mariadb" force="true"/>
         <env name="DB_PORT" value="3306" force="true"/>
         <env name="DB_DATABASE" value="laravel_test" force="true"/>
         <env name="DB_USERNAME" value="laravel" force="true"/>
@@ -32,13 +32,16 @@
         <env name="LOG_CHANNEL" value="null" force="true"/>
         <env name="AUTH_LOG_LEVEL" value="info" force="true"/>
         <env name="MAIL_MAILER" value="array" force="true"/>
-        <env name="MONGO_URI" value="mongodb://mongo-test:27017" force="true"/>
+        <env name="MONGO_URI" value="mongodb://mongo:27017" force="true"/>
         <env name="MONGO_DATABASE" value="laravel_test_logs" force="true"/>
         <env name="MONGO_AUTH_LOG_COLLECTION" value="auth_logs" force="true"/>
         <env name="PULSE_ENABLED" value="false" force="true"/>
         <env name="QUEUE_CONNECTION" value="sync" force="true"/>
         <env name="SESSION_DRIVER" value="array" force="true"/>
+        <env name="SESSION_ENCRYPT" value="false" force="true"/>
         <env name="TELESCOPE_ENABLED" value="false" force="true"/>
+        <env name="RECAPTCHA_SITE_KEY" value="" force="true"/>
+        <env name="RECAPTCHA_SECRET" value="" force="true"/>
         <env name="VIEW_COMPILED_PATH" value="/tmp/opencode/laravel-test-views" force="true"/>
     </php>
 </phpunit>
