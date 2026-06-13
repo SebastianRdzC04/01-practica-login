@@ -17,6 +17,10 @@ class AuthenticatedSessionController extends Controller
 {
     /**
      * Display the login view.
+     *
+     * @return View
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
      */
     public function create(): View
     {
@@ -38,7 +42,13 @@ class AuthenticatedSessionController extends Controller
     }
 
     /**
-     * Handle an incoming authentication request.
+     * Procesa una solicitud de inicio de sesión.
+     *
+     * @param LoginRequest $request Solicitud validada que contiene las credenciales del usuario.
+     * @return RedirectResponse Redirección al flujo de autenticación multifactor (MFA), área de cliente o panel de administración según corresponda.
+     * @throws ValidationException Si las credenciales son incorrectas o la cuenta está configurada únicamente para acceso mediante Google.
+     *
+     * @see https://docs.phpdoc.org/ Estándar de documentación PHPDoc.
      */
     public function store(LoginRequest $request): RedirectResponse
     {
@@ -173,6 +183,14 @@ class AuthenticatedSessionController extends Controller
         return redirect()->intended(route($request->user()->homeRouteName()));
     }
 
+    /**
+     * Log the user out of the application.
+     *
+     * @param  Request  $request  The current HTTP request.
+     * @return RedirectResponse  Redirect to the home page.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
+     */
     public function destroy(Request $request): RedirectResponse
     {
         $user = $request->user();
