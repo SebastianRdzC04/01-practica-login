@@ -20,7 +20,15 @@ use App\Services\RecaptchaService;
 class RegisteredUserController extends Controller
 {
     /**
-     * Display the registration view.
+     * Muestra la vista de registro de nuevos usuarios.
+     *
+     * Renderiza la página de registro. Antes de mostrar la vista, registra
+     * un evento de auditoría con la IP y el user agent para llevar un control
+     * de accesos a la página de registro.
+     *
+     * @return View Vista con el formulario de registro.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
      */
     public function create(): View
     {
@@ -35,9 +43,18 @@ class RegisteredUserController extends Controller
     }
 
     /**
-     * Handle an incoming registration request.
+     * Procesa una solicitud de registro entrante.
      *
-     * @throws ValidationException
+     * Valida los datos del formulario (nombre, email, contraseña), verifica
+     * el token de reCAPTCHA si está configurado, crea el usuario en la base
+     * de datos y lo autentica automáticamente. Registra eventos de auditoría
+     * en cada etapa y aplica limitación de tasa contra fuerza bruta.
+     *
+     * @param  Request $request Solicitud HTTP con los datos del registro.
+     * @return RedirectResponse Redirección a la ruta de inicio del usuario.
+     * @throws ValidationException Si falla la validación o reCAPTCHA.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
      */
     public function store(Request $request): RedirectResponse
     {
@@ -115,7 +132,7 @@ class RegisteredUserController extends Controller
      * @return void
      * @throws ValidationException Si se supera el límite de intentos permitidos.
      *
-     * @see https://docs.phpdoc.org/ Estándar de documentación PHPDoc.
+     * @see https://docs.phpdoc.org/ PHPDoc standard
      */
 
     protected function ensureIsNotRateLimited(Request $request): void
@@ -144,6 +161,18 @@ class RegisteredUserController extends Controller
         }
     }
 
+    /**
+     * Genera la clave única para limitar la tasa de solicitudes de registro.
+     *
+     * Combina el correo electrónico (en minúsculas) con la dirección IP para
+     * crear una clave única que identifica intentos de registro, permitiendo
+     * al limitador de tasa rastrear y bloquear solicitudes específicas.
+     *
+     * @param  Request $request Solicitud HTTP con los datos del registro.
+     * @return string Clave única en formato 'register:email|ip'.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
+     */
     protected function throttleKey(Request $request): string
     {
         return 'register:' . strtolower((string) $request->input('email')) . '|' . $request->ip();

@@ -120,6 +120,17 @@ class InactivityProtectionTest extends TestCase
         $this->assertFalse(session()->has(InactivityProtection::SESSION_KEY_PROTECTED));
     }
 
+    /**
+     * Verifica que el heartbeat de una sesión protegida renueve
+     * la marca de última actividad.
+     *
+     * Configura un usuario logger con TOTP, accede al dashboard para
+     * activar la protección por inactividad, luego retrocede manualmente
+     * el valor de SESSION_KEY_LAST_ACTIVITY_AT en 2 minutos. Realiza una
+     * petición POST a la ruta de actividad (session.activity) y comprueba
+     * que el nuevo timestamp sea mayor al anterior, confirmando que
+     * el heartbeat refresca correctamente la sesión.
+     */
     public function test_protected_session_heartbeat_refreshes_last_activity(): void
     {
         $logger = $this->setUpTotpUser(User::factory()->logger()->create());
@@ -136,6 +147,16 @@ class InactivityProtectionTest extends TestCase
         $this->assertGreaterThan($previousValue, session(InactivityProtection::SESSION_KEY_LAST_ACTIVITY_AT));
     }
 
+    /**
+     * Verifica que la sesión se cierre del lado del servidor cuando
+     * se supera el tiempo máximo de inactividad.
+     *
+     * Configura un administrador con TOTP + WebAuthn, accede al dashboard,
+     * luego retrocede SESSION_KEY_LAST_ACTIVITY_AT más allá del
+     * límite configurado (301 segundos). Al realizar una nueva petición
+     * al dashboard, comprueba que sea redirigido al login con el mensaje
+     * de inactividad y que el usuario quede como invitado.
+     */
     public function test_protected_session_is_closed_server_side_when_timeout_is_exceeded(): void
     {
         $admin = $this->setUpAdminWithMfa(User::factory()->admin()->create());

@@ -12,6 +12,19 @@ use Laravel\Socialite\Facades\Socialite;
 
 class GoogleLoginController extends Controller
 {
+    /**
+     * Redirige al usuario a Google OAuth para autenticación.
+     *
+     * Inicia el flujo de autenticación con Google mediante Socialite.
+     * Configura la URL de retorno dinámicamente según el esquema y host
+     * de la solicitud actual. Registra un evento de auditoría antes de
+     * redirigir al usuario a la página de consentimiento de Google.
+     *
+     * @param  Request $request Solicitud HTTP entrante.
+     * @return RedirectResponse Redirección a Google OAuth.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
+     */
     public function redirect(Request $request): RedirectResponse
     {
         AuthLog::info('Google login redirect', [
@@ -28,6 +41,21 @@ class GoogleLoginController extends Controller
             ->redirect();
     }
 
+    /**
+     * Procesa el callback de Google OAuth después de la autenticación.
+     *
+     * Recibe el código de autorización de Google, obtiene los datos del
+     * usuario y determina si debe iniciar sesión (usuario existente) o crear
+     * una cuenta nueva. Verifica si el email ya está registrado con contraseña
+     * para evitar duplicados. Maneja la autenticación multifactor (MFA)
+     * redirigiendo al usuario a configurar o verificar TOTP o WebAuthn.
+     * Registra eventos de auditoría detallados en cada etapa del proceso.
+     *
+     * @param  Request $request Solicitud HTTP con el código de autorización.
+     * @return RedirectResponse Redirección a la ruta de inicio o a MFA.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
+     */
     public function callback(Request $request): RedirectResponse
     {
         try {

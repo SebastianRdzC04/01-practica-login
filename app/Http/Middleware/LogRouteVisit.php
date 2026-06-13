@@ -9,6 +9,22 @@ use Symfony\Component\HttpFoundation\Response;
 
 class LogRouteVisit
 {
+    /**
+     * Registra en el log de autenticación cada visita exitosa a una ruta protegida.
+     *
+     * Este middleware se ejecuta después de que la solicitud ha sido procesada por el resto
+     * de la cadena (se coloca como último middleware). Si el método HTTP es GET y la respuesta
+     * es exitosa (código 2xx), registra un evento de depuración en AuthLog con información
+     * detallada: ruta, URL completa, datos del usuario autenticado, dirección IP y agente de
+     * usuario. Esto permite auditar el acceso a vistas protegidas y detectar patrones de
+     * navegación inusuales.
+     *
+     * @param  Request  $request  La solicitud HTTP entrante.
+     * @param  Closure  $next     Función que delega el procesamiento al siguiente middleware.
+     * @return Response            Respuesta HTTP generada por la aplicación, sin modificaciones.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
+     */
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);

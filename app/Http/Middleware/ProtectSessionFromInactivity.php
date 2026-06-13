@@ -10,6 +10,28 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ProtectSessionFromInactivity
 {
+    /**
+     * Protege la sesión del usuario cerrándola automáticamente tras un período de inactividad.
+     *
+     * Este middleware verifica en cada solicitud la última actividad registrada del usuario. Si
+     * el tiempo transcurrido desde esa actividad supera el límite configurado (server_timeout_seconds),
+     * se cierra la sesión, se invalida el token CSRF, se registra un evento de seguridad en AuthLog
+     * y se redirige al login con un mensaje informativo. Si la protección por inactividad está
+     * deshabilitada para el usuario, se limpian los datos de estado de la sesión. En caso contrario,
+     * se actualiza la marca de última actividad y se almacenan los tiempos de advertencia y modal
+     * para que el frontend pueda mostrar alertas proactivas al usuario antes del cierre.
+     * El modo 'force' permite aplicar la protección incluso si está deshabilitada en la
+     * configuración del usuario.
+     *
+     * @param  Request   $request  La solicitud HTTP entrante.
+     * @param  Closure   $next     Función que delega el procesamiento al siguiente middleware.
+     * @param  string|null  $mode  Modo de operación: 'force' para forzar la protección
+     *                             independientemente de la configuración del usuario.
+     * @return Response             Redirección al login si la sesión expiró, o respuesta del
+     *                              siguiente middleware si la sesión sigue activa.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
+     */
     public function handle(Request $request, Closure $next, ?string $mode = null): Response
     {
         $user = $request->user();
@@ -68,6 +90,20 @@ class ProtectSessionFromInactivity
         return $next($request);
     }
 
+    /**
+     * Elimina todos los datos de protección por inactividad almacenados en la sesión.
+     *
+     * Este método se invoca cuando la protección por inactividad está deshabilitada para el
+     * usuario. Limpia las claves de sesión relacionadas con los tiempos de espera (última
+     * actividad, modal, advertencia y servidor) para evitar que queden datos residuales que
+     * pudieran interferir con futuras evaluaciones o mostrar estados inconsistentes en el
+     * frontend.
+     *
+     * @param  Request  $request  La solicitud HTTP de la cual se limpiará el estado de sesión.
+     * @return void
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
+     */
     private function clearState(Request $request): void
     {
         $request->session()->forget([

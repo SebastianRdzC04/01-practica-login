@@ -9,7 +9,21 @@ use Illuminate\Support\Facades\Auth;
 class EnsureTwoFactorConfigured
 {
     /**
-     * Handle an incoming request.
+     * Verifica que el usuario autenticado tenga configurados los factores de autenticación multifactor requeridos.
+     *
+     * Este middleware se ejecuta en cada solicitud entrante para validar que el usuario haya
+     * completado la configuración de todos los factores MFA obligatorios definidos en el modelo
+     * (TOTP, WebAuthn, etc.). Si el usuario carece de algún factor requerido, es redirigido a la
+     * página de configuración correspondiente. Además, si ya existe una sesión con factores
+     * pendientes de verificación, redirige al flujo de verificación MFA. Las rutas bajo el prefijo
+     * 'mfa.*' quedan exentas de estas redirecciones para permitir la configuración y verificación.
+     *
+     * @param  Request  $request  La solicitud HTTP entrante.
+     * @param  Closure  $next     Función que delega el procesamiento al siguiente middleware.
+     * @return \Illuminate\Http\RedirectResponse|mixed  Redirección a configuración/verificación MFA
+     *                                                  o continúa con el siguiente middleware.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
      */
     public function handle(Request $request, Closure $next)
     {

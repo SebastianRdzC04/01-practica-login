@@ -16,6 +16,19 @@ use Illuminate\Validation\ValidationException;
 
 class TwoFactorController
 {
+    /**
+     * Muestra la página de configuración de TOTP (Google Authenticator).
+     *
+     * Genera una clave secreta TOTP si no existe una en la sesión actual,
+     * crea un código QR que el usuario escanea con su aplicación de
+     * autenticación y renderiza la vista de configuración.
+     * Registra un evento de auditoría al mostrar la página.
+     *
+     * @param  Request $request Solicitud HTTP entrante.
+     * @return View Vista con el código QR y la clave secreta TOTP.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
+     */
     public function showSetup(Request $request)
     {
         $user = Auth::user();
@@ -56,6 +69,20 @@ class TwoFactorController
         ]);
     }
 
+    /**
+     * Confirma y guarda la configuración TOTP del usuario.
+     *
+     * Verifica el token de reCAPTCHA, valida el código TOTP de 6 dígitos
+     * contra la clave secreta en sesión. Si es válido, guarda la clave cifrada
+     * en el usuario y marca TOTP como configurado. Luego verifica si hay más
+     * factores MFA pendientes (como WebAuthn) y redirige en consecuencia.
+     *
+     * @param  Request $request Solicitud HTTP con el código TOTP y reCAPTCHA.
+     * @return RedirectResponse|View Redirección a WebAuthn, inicio, o error.
+     * @throws ValidationException Si falla la verificación de reCAPTCHA.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
+     */
     public function confirmSetup(Request $request)
     {
         $user = Auth::user();
@@ -175,6 +202,18 @@ class TwoFactorController
         return redirect()->intended(route($request->user()->homeRouteName()));
     }
 
+    /**
+     * Muestra la página de verificación TOTP.
+     *
+     * Renderiza el formulario donde el usuario ingresa el código de 6 dígitos
+     * de su aplicación de autenticación para completar el segundo factor.
+     * Registra un evento de auditoría al mostrar la página.
+     *
+     * @param  Request $request Solicitud HTTP entrante.
+     * @return View Vista del formulario de verificación TOTP.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
+     */
     public function showVerify(Request $request)
     {
         $user = Auth::user();
@@ -192,6 +231,20 @@ class TwoFactorController
         return view('mfa.verify');
     }
 
+    /**
+     * Verifica el código TOTP ingresado por el usuario.
+     *
+     * Aplica limitación de tasa contra fuerza bruta, verifica reCAPTCHA,
+     * valida el código TOTP contra la clave secreta del usuario. Si es
+     * válido, marca TOTP como factor superado. Si todos los factores
+     * requeridos están completos, autentica al usuario completamente.
+     *
+     * @param  Request $request Solicitud HTTP con el código TOTP y reCAPTCHA.
+     * @return RedirectResponse|View Redirección a inicio, MFA, o error.
+     * @throws ValidationException Si falla reCAPTCHA o límite de tasa.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
+     */
     public function verify(Request $request)
     {
         $user = Auth::user();

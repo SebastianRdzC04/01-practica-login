@@ -11,9 +11,22 @@ use Symfony\Component\HttpFoundation\Response;
 class RedirectIfAuthenticated
 {
     /**
-     * Handle an incoming request.
+     * Redirige a los usuarios autenticados lejos de rutas públicas (login, registro, etc.).
      *
-     * @param  Closure(Request): (Response)  $next
+     * Este middleware se aplica típicamente a las rutas de invitado (guest). Si el usuario ya
+     * ha iniciado sesión con cualquiera de los guards especificados, se registra un evento de
+     * depuración en AuthLog con los detalles del usuario y la ruta a la que intentó acceder,
+     * y luego se le redirige a su página de inicio personalizada (definida por homeRouteName()).
+     * Si no se especifican guards, se evalúa el guard por defecto (null). Si el usuario no está
+     * autenticado en ningún guard, la solicitud continúa normalmente.
+     *
+     * @param  Request  $request  La solicitud HTTP entrante.
+     * @param  Closure  $next     Función que delega el procesamiento al siguiente middleware.
+     * @param  string   ...$guards Lista de guards de autenticación a verificar (opcional).
+     * @return Response            Redirección al dashboard del usuario si está autenticado,
+     *                             o respuesta del siguiente middleware si es invitado.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
      */
     public function handle(Request $request, Closure $next, string ...$guards): Response
     {

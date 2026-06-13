@@ -15,7 +15,16 @@ use Illuminate\Validation\ValidationException;
 class ProfileController extends Controller
 {
     /**
-     * Display the user's profile form.
+     * Muestra el formulario de edición del perfil del usuario.
+     *
+     * Renderiza la página de perfil del usuario autenticado para que
+     * pueda modificar su nombre y correo electrónico. Registra un
+     * evento de auditoría al mostrar la página.
+     *
+     * @param  Request $request Solicitud HTTP entrante.
+     * @return View Vista del formulario de edición de perfil.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
      */
     public function edit(Request $request): View
     {
@@ -37,7 +46,17 @@ class ProfileController extends Controller
     }
 
     /**
-     * Update the user's profile information.
+     * Actualiza la información del perfil del usuario.
+     *
+     * Valida y guarda los cambios del perfil (nombre, email). Si el email
+     * cambia, marca la verificación como pendiente. Verifica reCAPTCHA
+     * antes de procesar. Registra eventos de auditoría detallados.
+     *
+     * @param  ProfileUpdateRequest $request Solicitud con los datos validados.
+     * @return RedirectResponse Redirección a la edición de perfil.
+     * @throws ValidationException Si falla la verificación de reCAPTCHA.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
@@ -90,7 +109,18 @@ class ProfileController extends Controller
     }
 
     /**
-     * Delete the user's account.
+     * Elimina la cuenta del usuario autenticado.
+     *
+     * Requiere confirmación de la contraseña actual y verificación de
+     * reCAPTCHA. Invalida la sesión, elimina el usuario de la base de
+     * datos y redirige a la página principal. Registra eventos de
+     * auditoría en cada etapa del proceso.
+     *
+     * @param  Request $request Solicitud HTTP con la contraseña de confirmación.
+     * @return RedirectResponse Redirección a la página principal.
+     * @throws ValidationException Si falla validación de contraseña o reCAPTCHA.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
      */
     public function destroy(Request $request): RedirectResponse
     {

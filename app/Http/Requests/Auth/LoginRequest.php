@@ -16,7 +16,14 @@ use GuzzleHttp\Client;
 class LoginRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * Determina si el usuario está autorizado a realizar esta solicitud.
+     *
+     * Todas las solicitudes de inicio de sesión están permitidas sin
+     * restricción previa.
+     *
+     * @return bool  Siempre retorna true.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
      */
     public function authorize(): bool
     {
@@ -24,9 +31,14 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * Get the validation rules that apply to the request.
+     * Obtiene las reglas de validación para la solicitud de inicio de sesión.
      *
-     * @return array<string, Rule|array|string>
+     * Valida que el correo electrónico tenga un formato válido y que
+     * la contraseña sea una cadena de texto.
+     *
+     * @return array<string, Rule|array|string>  Reglas de validación por campo.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
      */
     public function rules(): array
     {
@@ -37,9 +49,16 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * Attempt to authenticate the request's credentials.
+     * Intenta autenticar las credenciales de la solicitud.
      *
-     * @throws ValidationException
+     * Verifica el rate limiting, valida el token reCAPTCHA si está
+     * configurado, busca al usuario por correo electrónico y comprueba
+     * la contraseña. En caso de fallo, registra el evento y lanza
+     * una excepción de validación.
+     *
+     * @throws \Illuminate\Validation\ValidationException  Cuando las credenciales son inválidas o el rate limiter está activo.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
      */
     public function authenticate(): void
     {
@@ -120,9 +139,15 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * Ensure the login request is not rate limited.
+     * Verifica que la solicitud no supere el límite de intentos.
      *
-     * @throws ValidationException
+     * Si el rate limiter indica que se han excedido los intentos
+     * permitidos, dispara un evento Lockout y lanza una excepción
+     * de validación con el tiempo restante de bloqueo.
+     *
+     * @throws \Illuminate\Validation\ValidationException  Cuando se ha superado el límite de intentos.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
      */
     public function ensureIsNotRateLimited(): void
     {
@@ -143,7 +168,14 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * Get the rate limiting throttle key for the request.
+     * Obtiene la clave de estrangulamiento para el rate limiter.
+     *
+     * Delega en LoginLockout::throttleKey usando el correo y la
+     * dirección IP de la solicitud actual.
+     *
+     * @return string  Clave única de estrangulamiento.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
      */
     public function throttleKey(): string
     {

@@ -4,6 +4,16 @@ namespace App\Support;
 
 use App\Models\User;
 
+/**
+ * Protección por inactividad del usuario autenticado.
+ *
+ * Define los tiempos de espera y la configuración para detectar
+ * y notificar la inactividad del usuario en sesiones con roles
+ * de alto privilegio (administrador, logger). Utiliza claves de
+ * sesión para almacenar el estado de la protección.
+ *
+ * @see https://docs.phpdoc.org/ PHPDoc standard
+ */
 class InactivityProtection
 {
     public const SESSION_KEY_LAST_ACTIVITY_AT = 'inactivity.last_activity_at';
@@ -23,7 +33,16 @@ class InactivityProtection
     public const DEFAULT_SERVER_TIMEOUT_SECONDS = 300;
 
     /**
-     * @return array{enabled: bool, modal_timeout_seconds: int, warning_timeout_seconds: int, server_timeout_seconds: int}
+     * Obtiene la configuración de inactividad para un usuario dado.
+     *
+     * La protección solo se habilita para roles de administrador y
+     * logger. Retorna los tiempos de espera por defecto para el
+     * modal, la advertencia y el cierre de sesión del servidor.
+     *
+     * @param  \App\Models\User|null  $user  Usuario autenticado o null si es invitado.
+     * @return array{enabled: bool, modal_timeout_seconds: int, warning_timeout_seconds: int, server_timeout_seconds: int}  Configuración de inactividad.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
      */
     public static function configFor(?User $user): array
     {

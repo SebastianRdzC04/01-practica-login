@@ -9,6 +9,18 @@ use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
+    /**
+     * Muestra el dashboard del usuario autenticado.
+     *
+     * Renderiza la vista principal del panel de control según el rol del
+     * usuario (admin, cliente, etc.). Registra un evento de auditoría con
+     * información del usuario y la solicitud.
+     *
+     * @param  Request $request Solicitud HTTP entrante.
+     * @return View Vista del dashboard con los datos del usuario.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
+     */
     public function __invoke(Request $request): View
     {
         /** @var User $user */

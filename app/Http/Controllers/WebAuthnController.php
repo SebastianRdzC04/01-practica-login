@@ -17,6 +17,20 @@ use Laragear\WebAuthn\JsonTransport;
 
 class WebAuthnController extends Controller
 {
+    /**
+     * Verifica que el usuario haya superado TOTP antes de WebAuthn.
+     *
+     * Asegura que el flujo MFA se ejecute en orden: primero TOTP, luego
+     * WebAuthn. Si TOTP ya fue superado o el usuario no lo tiene habilitado
+     * y no hay autenticación pendiente, retorna null para continuar.
+     * En caso contrario, redirige a la verificación TOTP.
+     *
+     * @param  Request $request Solicitud HTTP entrante.
+     * @return mixed|null|RedirectResponse Null si TOTP está superado,
+     *         RedirectResponse si debe verificar TOTP primero.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
+     */
     protected function ensureTotpPassed(Request $request): mixed
     {
         $passed = $request->session()->get('factors_passed', []);
@@ -33,6 +47,18 @@ class WebAuthnController extends Controller
         return redirect()->route('mfa.verify');
     }
 
+    /**
+     * Muestra la página de configuración WebAuthn.
+     *
+     * Verifica que TOTP esté superado, luego renderiza la página donde el
+     * usuario registra su dispositivo biométrico (huella, Face ID, Windows
+     * Hello, etc.). Registra un evento de auditoría al mostrar la página.
+     *
+     * @param  Request $request Solicitud HTTP entrante.
+     * @return RedirectResponse|View Redirección a TOTP o vista de configuración.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
+     */
     public function showSetup(Request $request)
     {
         if ($resp = $this->ensureTotpPassed($request)) {
@@ -54,6 +80,19 @@ class WebAuthnController extends Controller
         return view('mfa.webauthn_setup');
     }
 
+    /**
+     * Genera las opciones de registro WebAuthn (attestation).
+     *
+     * Prepara los parámetros de registro del autenticador WebAuthn:
+     * autenticación de plataforma, verificación de usuario requerida y
+     * tiempo de espera. Devuelve estos parámetros como JSON para que
+     * el navegador inicie el registro de la credencial.
+     *
+     * @param  AttestationRequest $request Solicitud de attestation WebAuthn.
+     * @return JsonResponse Respuesta JSON con las opciones de registro.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
+     */
     public function options(AttestationRequest $request)
     {
         if ($resp = $this->ensureTotpPassed($request)) {
@@ -72,6 +111,21 @@ class WebAuthnController extends Controller
         return response()->json(['publicKey' => $data]);
     }
 
+    /**
+     * Guarda una nueva credencial WebAuthn registrada por el usuario.
+     *
+     * Procesa la respuesta de attestation del navegador, detecta el alias
+     * del dispositivo según el user agent y guarda la credencial asociada
+     * al usuario. Marca WebAuthn como factor superado. Si todos los factores
+     * requeridos están completos, autentica al usuario completamente.
+     *
+     * @param  AttestedRequest $request Solicitud con la credencial atestiguada.
+     * @return JsonResponse Respuesta JSON indicando éxito o error.
+     *
+     * @throws \Exception Si falla el registro de la credencial.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
+     */
     public function register(AttestedRequest $request)
     {
         if ($resp = $this->ensureTotpPassed($request)) {
@@ -140,6 +194,18 @@ class WebAuthnController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    /**
+     * Muestra la página de autenticación WebAuthn.
+     *
+     * Verifica que TOTP esté superado, luego renderiza la página donde el
+     * usuario se autentica usando su dispositivo biométrico registrado.
+     * Registra un evento de auditoría al mostrar la página.
+     *
+     * @param  Request $request Solicitud HTTP entrante.
+     * @return RedirectResponse|View Redirección a TOTP o vista de autenticación.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
+     */
     public function showAuthenticate(Request $request)
     {
         if ($resp = $this->ensureTotpPassed($request)) {
@@ -161,6 +227,18 @@ class WebAuthnController extends Controller
         return view('mfa.webauthn_auth');
     }
 
+    /**
+     * Genera las opciones de autenticación WebAuthn (assertion).
+     *
+     * Prepara los parámetros para que el navegador inicie la autenticación
+     * con una credencial WebAuthn existente. Configura verificación de
+     * usuario y tiempo de espera. Devuelve los parámetros como JSON.
+     *
+     * @param  AssertionRequest $request Solicitud de assertion WebAuthn.
+     * @return JsonResponse Respuesta JSON con las opciones de autenticación.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
+     */
     public function assertionOptions(AssertionRequest $request)
     {
         if ($resp = $this->ensureTotpPassed($request)) {
@@ -176,6 +254,21 @@ class WebAuthnController extends Controller
         return response()->json(['publicKey' => $data]);
     }
 
+    /**
+     * Autentica al usuario mediante una credencial WebAuthn.
+     *
+     * Aplica limitación de tasa contra fuerza bruta, valida la aserción
+     * WebAuthn usando el validador de Laragear y, si es exitosa, marca
+     * WebAuthn como factor superado. Si todos los factores requeridos
+     * están completos, autentica al usuario completamente.
+     * En caso de error, incrementa el contador de intentos y devuelve
+     * un mensaje de error JSON con el código HTTP correspondiente.
+     *
+     * @param  AssertedRequest $request Solicitud con la aserción WebAuthn.
+     * @return JsonResponse Respuesta JSON (200 éxito, 422 error, 429 límite).
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
+     */
     public function authenticate(AssertedRequest $request)
     {
         $user = Auth::user();
@@ -267,6 +360,19 @@ class WebAuthnController extends Controller
         }
     }
 
+    /**
+     * Detecta el alias del dispositivo basado en el user agent.
+     *
+     * Analiza el user agent para determinar un nombre descriptivo del
+     * dispositivo biométrico (Windows Hello, Touch ID, Face ID, huella
+     * Android, etc.). Este alias se almacena con la credencial WebAuthn
+     * para facilitar su identificación por el usuario.
+     *
+     * @param  Request $request Solicitud HTTP con el user agent.
+     * @return string Alias descriptivo del dispositivo biométrico.
+     *
+     * @see https://docs.phpdoc.org/ PHPDoc standard
+     */
     protected function detectDeviceAlias(Request $request): string
     {
         $ua = $request->userAgent();
