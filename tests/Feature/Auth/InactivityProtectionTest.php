@@ -11,11 +11,45 @@ class InactivityProtectionTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUpTotpUser(User $user): User
+    {
+        $user->two_factor_secret = encrypt(str_repeat('A', 32));
+        $user->two_factor_enabled = true;
+        $user->save();
+
+        return $user;
+    }
+
+    protected function setUpAdminWithMfa(User $user): User
+    {
+        $user->two_factor_secret = encrypt(str_repeat('A', 32));
+        $user->two_factor_enabled = true;
+        $user->save();
+
+        $credential = new \Laragear\WebAuthn\Models\WebAuthnCredential();
+        $credential->id = \Illuminate\Support\Str::random(50);
+        $credential->user_id = (\Illuminate\Support\Str::uuid())->toString();
+        $credential->rp_id = 'localhost';
+        $credential->origin = 'http://localhost';
+        $credential->public_key = 'test_public_key';
+
+        $user->webAuthnCredentials()->save($credential);
+
+        return $user;
+    }
+
+    protected function actingAsWithMfa(User $user, array $factors = ['totp']): static
+    {
+        session(['factors_passed' => $factors]);
+
+        return $this->actingAs($user);
+    }
+
     public function test_admin_session_is_marked_as_inactivity_protected(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = $this->setUpAdminWithMfa(User::factory()->admin()->create());
 
-        $this->actingAs($admin)
+        $this->actingAsWithMfa($admin, ['totp', 'webauthn'])
             ->get(route('dashboard'))
             ->assertOk();
 
@@ -38,14 +72,14 @@ class InactivityProtectionTest extends TestCase
 
     public function test_protected_session_heartbeat_refreshes_last_activity(): void
     {
-        $logger = User::factory()->logger()->create();
+        $logger = $this->setUpTotpUser(User::factory()->logger()->create());
 
-        $this->actingAs($logger)->get(route('dashboard'));
+        $this->actingAsWithMfa($logger, ['totp'])->get(route('dashboard'));
 
         session()->put(InactivityProtection::SESSION_KEY_LAST_ACTIVITY_AT, now()->subMinutes(2)->timestamp);
         $previousValue = session(InactivityProtection::SESSION_KEY_LAST_ACTIVITY_AT);
 
-        $response = $this->actingAs($logger)->postJson(route('session.activity'));
+        $response = $this->actingAsWithMfa($logger, ['totp'])->postJson(route('session.activity'));
 
         $response->assertOk();
         $response->assertJsonPath('protected', true);
@@ -54,13 +88,13 @@ class InactivityProtectionTest extends TestCase
 
     public function test_protected_session_is_closed_server_side_when_timeout_is_exceeded(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = $this->setUpAdminWithMfa(User::factory()->admin()->create());
 
-        $this->actingAs($admin)->get(route('dashboard'));
+        $this->actingAsWithMfa($admin, ['totp', 'webauthn'])->get(route('dashboard'));
 
         session()->put(InactivityProtection::SESSION_KEY_LAST_ACTIVITY_AT, now()->subSeconds(301)->timestamp);
 
-        $response = $this->actingAs($admin)->get(route('dashboard'));
+        $response = $this->actingAsWithMfa($admin, ['totp', 'webauthn'])->get(route('dashboard'));
 
         $response->assertRedirect(route('login'));
         $response->assertSessionHas('status', 'Tu sesion se cerro por inactividad.');
