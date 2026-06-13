@@ -11,6 +11,16 @@ class InactivityProtectionTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Configura un usuario con autenticación TOTP habilitada.
+     *
+     * Encripta una clave secreta TOTP de 32 caracteres y marca al usuario
+     * como teniendo el segundo factor habilitado. Esto evita que el middleware
+     * EnsureTwoFactorConfigured redirija a la pantalla de configuración TOTP.
+     *
+     * @param  User  $user  Usuario al que se le habilitará TOTP.
+     * @return User  El mismo usuario con TOTP configurado y persistido en BD.
+     */
     protected function setUpTotpUser(User $user): User
     {
         $user->two_factor_secret = encrypt(str_repeat('A', 32));
@@ -20,6 +30,18 @@ class InactivityProtectionTest extends TestCase
         return $user;
     }
 
+    /**
+     * Configura un usuario administrador con TOTP + WebAuthn.
+     *
+     * Además de habilitar TOTP como setUpTotpUser(), crea una credencial
+     * WebAuthn dummy asociada al usuario. El rol administrador requiere
+     * ambos factores ('totp', 'webauthn'), y el middleware EnsureTwoFactorConfigured
+     * redirige a la configuración WebAuthn si el usuario no tiene ninguna
+     * credencial registrada, incluso si factors_passed ya incluye 'webauthn'.
+     *
+     * @param  User  $user  Usuario administrador.
+     * @return User  El mismo usuario con TOTP + WebAuthn configurados.
+     */
     protected function setUpAdminWithMfa(User $user): User
     {
         $user->two_factor_secret = encrypt(str_repeat('A', 32));
@@ -38,6 +60,18 @@ class InactivityProtectionTest extends TestCase
         return $user;
     }
 
+    /**
+     * Autentica al usuario y marca los factores MFA como superados en sesión.
+     *
+     * Establece en sesión la lista de factores que el usuario ya ha superado
+     * (ej. ['totp'] o ['totp', 'webauthn']) para que el middleware
+     * EnsureTwoFactorConfigured no redirija a las pantallas de verificación.
+     * Luego autentica al usuario mediante actingAs().
+     *
+     * @param  User    $user    Usuario a autenticar.
+     * @param  array   $factors Factores MFA ya superados (por defecto solo TOTP).
+     * @return static
+     */
     protected function actingAsWithMfa(User $user, array $factors = ['totp']): static
     {
         session(['factors_passed' => $factors]);
@@ -45,6 +79,15 @@ class InactivityProtectionTest extends TestCase
         return $this->actingAs($user);
     }
 
+    /**
+     * Verifica que la sesión de un administrador se marque como protegida
+     * contra inactividad, con los tiempos de espera correctos.
+     *
+     * El middleware ProtectSessionFromInactivity debe establecer en sesión
+     * las claves SESSION_KEY_PROTECTED, SESSION_KEY_MODAL_TIMEOUT_SECONDS,
+     * SESSION_KEY_WARNING_TIMEOUT_SECONDS y SESSION_KEY_SERVER_TIMEOUT_SECONDS
+     * con los valores configurados para el rol administrador.
+     */
     public function test_admin_session_is_marked_as_inactivity_protected(): void
     {
         $admin = $this->setUpAdminWithMfa(User::factory()->admin()->create());
@@ -59,6 +102,13 @@ class InactivityProtectionTest extends TestCase
         $this->assertSame(300, session(InactivityProtection::SESSION_KEY_SERVER_TIMEOUT_SECONDS));
     }
 
+    /**
+     * Verifica que la sesión de un cliente NO se marque como protegida.
+     *
+     * El rol cliente no requiere protección por inactividad, por lo que
+     * la clave SESSION_KEY_PROTECTED no debe existir en sesión después
+     * de acceder al área de cliente.
+     */
     public function test_client_session_is_not_marked_as_inactivity_protected(): void
     {
         $client = User::factory()->client()->create();
