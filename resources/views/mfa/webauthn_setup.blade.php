@@ -38,13 +38,6 @@
     </div>
 
 <script>
-(function() {
-    var d = document.getElementById('diag');
-    if (d) {
-        d.textContent = 'isSecureContext=' + window.isSecureContext + ' | hasCredentialsAPI=' + ('credentials' in navigator) + ' | protocol=' + location.protocol + ' | host=' + location.host;
-    }
-})();
-
 const startBtn = document.getElementById('start');
 const urls = {
     options: startBtn.dataset.optionsUrl,
@@ -190,3 +183,4 @@ document.getElementById('start').addEventListener('click', async () => {
 });
 </script>
 </x-guest-layout>
+

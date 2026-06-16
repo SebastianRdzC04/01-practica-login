@@ -191,6 +191,7 @@ class AuthLog
     {
         return array_merge([
             'app_env' => config('app.env'),
+            'app_server_id' => config('app.server_id'),
         ], $context);
     }
 }
