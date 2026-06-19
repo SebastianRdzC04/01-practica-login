@@ -15,7 +15,7 @@ abstract class TestCase extends BaseTestCase
      * Configuración inicial ejecutada antes de cada prueba.
      *
      * Llama al setUp() padre de Laravel y luego limpia los logs de
-     * autenticación en MongoDB para asegurar un estado limpio y
+     * autenticación en MariaDB para asegurar un estado limpio y
      * predecible en cada test.
      */
     protected function setUp(): void

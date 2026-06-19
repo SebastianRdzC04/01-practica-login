@@ -25,16 +25,12 @@ services:
       DB_DATABASE: laravel
       DB_USERNAME: laravel
       DB_PASSWORD: laravel
-      MONGO_HOST: mongo
-      MONGO_PORT: 27017
-      MONGO_URI: mongodb://mongo:27017
-      MONGO_DATABASE: laravel_logs
-      MONGO_AUTH_LOG_COLLECTION: auth_logs
       AUTH_LOG_LEVEL: info
       CACHE_DRIVER: file
       QUEUE_CONNECTION: sync
-      SESSION_DRIVER: file
+      SESSION_DRIVER: database
       SESSION_LIFETIME: 120
+      SESSION_COOKIE: auth_sid
       MAIL_MAILER: smtp
       VITE_APP_NAME: Laravel
       WEBAUTHN_ORIGINS: http://localhost:8080
@@ -46,8 +42,6 @@ services:
     depends_on:
       mariadb:
         condition: service_healthy
-      mongo:
-        condition: service_started
       mailpit:
         condition: service_started
 
@@ -77,15 +71,6 @@ services:
       timeout: 5s
       retries: 20
 
-  mongo:
-    image: mongo:7.0
-    container_name: practica-login-mongo
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-
   mailpit:
     image: axllent/mailpit:latest
     container_name: practica-login-mailpit
@@ -96,4 +81,3 @@ services:
 
 volumes:
   mariadb_data:
-  mongo_data:

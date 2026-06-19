@@ -31,7 +31,7 @@ class AuthenticationTest extends TestCase
      * Crea un usuario con rol 'client', envía credenciales válidas via POST
      * a /login y comprueba que la sesión se establezca (assertAuthenticated),
      * que sea redirigido a client.home, y que se registre un log de
-     * 'login_success' en la colección de MongoDB.
+     * 'login_success' en la tabla auth_logs.
      */
     public function test_users_can_authenticate_using_the_login_screen(): void
     {
@@ -48,9 +48,9 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect(route('client.home'));
 
         $this->assertAuthMongoLogExists([
-            'context.event' => 'login_success',
-            'context.email' => $user->email,
-            'context.succeeded' => true,
+            'event' => 'login_success',
+            'email' => $user->email,
+            'succeeded' => true,
         ]);
     }
 
@@ -59,7 +59,7 @@ class AuthenticationTest extends TestCase
      *
      * Envía credenciales inválidas via POST a /login, comprueba que
      * el usuario siga siendo invitado (assertGuest) y que se registre
-     * un log de 'login_failed' en MongoDB con el email del usuario.
+     * un log de 'login_failed' en la tabla auth_logs con el email del usuario.
      */
     public function test_users_can_not_authenticate_with_invalid_password(): void
     {
@@ -73,9 +73,9 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
 
         $this->assertAuthMongoLogExists([
-            'context.event' => 'login_failed',
-            'context.email' => $user->email,
-            'context.succeeded' => false,
+            'event' => 'login_failed',
+            'email' => $user->email,
+            'succeeded' => false,
         ]);
     }
 
@@ -84,7 +84,7 @@ class AuthenticationTest extends TestCase
      *
      * Autentica al usuario, realiza una petición POST a /logout y
      * comprueba que la sesión se destruya (assertGuest), que sea
-     * redirigido a / y que se registre un log de 'logout' en MongoDB.
+     * redirigido a / y que se registre un log de 'logout' en la tabla auth_logs.
      */
     public function test_users_can_logout(): void
     {
@@ -96,9 +96,9 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect('/');
 
         $this->assertAuthMongoLogExists([
-            'context.event' => 'logout',
-            'context.email' => $user->email,
-            'context.succeeded' => true,
+            'event' => 'logout',
+            'email' => $user->email,
+            'succeeded' => true,
         ]);
     }
 

@@ -32,9 +32,6 @@
         <env name="LOG_CHANNEL" value="null" force="true"/>
         <env name="AUTH_LOG_LEVEL" value="info" force="true"/>
         <env name="MAIL_MAILER" value="array" force="true"/>
-        <env name="MONGO_URI" value="mongodb://mongo:27017" force="true"/>
-        <env name="MONGO_DATABASE" value="laravel_test_logs" force="true"/>
-        <env name="MONGO_AUTH_LOG_COLLECTION" value="auth_logs" force="true"/>
         <env name="PULSE_ENABLED" value="false" force="true"/>
         <env name="QUEUE_CONNECTION" value="sync" force="true"/>
         <env name="SESSION_DRIVER" value="array" force="true"/>

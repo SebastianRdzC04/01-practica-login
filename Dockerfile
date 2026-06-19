@@ -36,9 +36,6 @@ RUN apt-get update \
 
 RUN docker-php-ext-install intl pdo_mysql zip opcache
 
-RUN pecl install mongodb \
-    && docker-php-ext-enable mongodb
-
 RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
     && apt-get update \
     && apt-get install -y --no-install-recommends nodejs \

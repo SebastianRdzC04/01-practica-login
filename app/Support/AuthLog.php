@@ -2,19 +2,8 @@
 
 namespace App\Support;
 
-use Illuminate\Support\Facades\Log;
+use App\Models\AuthLog as AuthLogModel;
 
-/**
- * Log de auditoría para eventos de autenticación.
- *
- * Proporciona una fachada simplificada sobre el canal 'auth' de
- * Laravel Log, agregando automáticamente el entorno de aplicación
- * (APP_ENV) al contexto de cada mensaje. Centraliza todas las
- * constantes de eventos relacionados con autenticación, registro,
- * TOTP, WebAuthn, Google, perfil, contraseñas y actividad.
- *
- * @see https://docs.phpdoc.org/ PHPDoc standard
- */
 class AuthLog
 {
     public const EVENT_LOGIN_SCREEN_VIEWED = 'login_screen_viewed';
@@ -119,74 +108,48 @@ class AuthLog
 
     public const EVENT_SESSION_HEARTBEAT = 'session_heartbeat';
 
-    /**
-     * Registra un mensaje informativo en el canal de autenticación.
-     *
-     * @param  string  $message  Mensaje descriptivo del evento.
-     * @param  array<string, mixed>  $context  Contexto adicional del evento.
-     * @return void
-     *
-     * @see https://docs.phpdoc.org/ PHPDoc standard
-     */
     public static function info(string $message, array $context = []): void
     {
-        Log::channel('auth')->info($message, static::normalizeContext($context));
+        static::write('info', $message, $context);
     }
 
-    /**
-     * Registra un mensaje de advertencia en el canal de autenticación.
-     *
-     * @param  string  $message  Mensaje descriptivo de la advertencia.
-     * @param  array<string, mixed>  $context  Contexto adicional del evento.
-     * @return void
-     *
-     * @see https://docs.phpdoc.org/ PHPDoc standard
-     */
     public static function warning(string $message, array $context = []): void
     {
-        Log::channel('auth')->warning($message, static::normalizeContext($context));
+        static::write('warning', $message, $context);
     }
 
-    /**
-     * Registra un mensaje de error en el canal de autenticación.
-     *
-     * @param  string  $message  Mensaje descriptivo del error.
-     * @param  array<string, mixed>  $context  Contexto adicional del evento.
-     * @return void
-     *
-     * @see https://docs.phpdoc.org/ PHPDoc standard
-     */
     public static function error(string $message, array $context = []): void
     {
-        Log::channel('auth')->error($message, static::normalizeContext($context));
+        static::write('error', $message, $context);
     }
 
-    /**
-     * Registra un mensaje de depuración en el canal de autenticación.
-     *
-     * @param  string  $message  Mensaje descriptivo para depuración.
-     * @param  array<string, mixed>  $context  Contexto adicional del evento.
-     * @return void
-     *
-     * @see https://docs.phpdoc.org/ PHPDoc standard
-     */
     public static function debug(string $message, array $context = []): void
     {
-        Log::channel('auth')->debug($message, static::normalizeContext($context));
+        static::write('debug', $message, $context);
     }
 
-    /**
-     * Normaliza el contexto agregando el entorno de aplicación.
-     *
-     * Fusiona el arreglo de contexto recibido con el valor de la
-     * configuración `app.env`, asegurando que cada registro incluya
-     * el entorno actual (local, production, etc.).
-     *
-     * @param  array<string, mixed>  $context  Contexto original del evento.
-     * @return array<string, mixed>  Contexto enriquecido con app_env.
-     *
-     * @see https://docs.phpdoc.org/ PHPDoc standard
-     */
+    private static function write(string $level, string $message, array $context): void
+    {
+        $context = static::normalizeContext($context);
+
+        AuthLogModel::create([
+            'level' => $level,
+            'message' => $message,
+            'event' => $context['event'] ?? null,
+            'user_id' => $context['user_id'] ?? null,
+            'email' => $context['email'] ?? null,
+            'role' => $context['role'] ?? null,
+            'ip_address' => $context['ip_address'] ?? null,
+            'user_agent' => $context['user_agent'] ?? null,
+            'succeeded' => $context['succeeded'] ?? null,
+            'context' => array_diff_key($context, array_flip([
+                'event', 'user_id', 'email', 'role',
+                'ip_address', 'user_agent', 'succeeded',
+                'app_env', 'app_server_id',
+            ])),
+        ]);
+    }
+
     private static function normalizeContext(array $context): array
     {
         return array_merge([

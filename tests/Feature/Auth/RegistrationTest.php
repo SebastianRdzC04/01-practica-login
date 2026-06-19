@@ -37,9 +37,9 @@ class RegistrationTest extends TestCase
         ]);
 
         $this->assertAuthMongoLogExists([
-            'context.event' => 'register_success',
-            'context.email' => 'test@example.com',
-            'context.succeeded' => true,
+            'event' => 'register_success',
+            'email' => 'test@example.com',
+            'succeeded' => true,
         ]);
     }
 }
