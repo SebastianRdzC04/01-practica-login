@@ -36,13 +36,6 @@ until mysqladmin ping -h"${DB_HOST:-mariadb}" -P"${DB_PORT:-3306}" -u"${DB_USERN
     sleep 2
 done
 
-echo "Waiting for MongoDB at ${MONGO_HOST:-mongo}:${MONGO_PORT:-27017}..."
-TRY=0
-until gosu sail php -r '$uri = getenv("MONGO_URI") ?: "mongodb://mongo:27017"; $manager = new MongoDB\Driver\Manager($uri); $manager->executeCommand("admin", new MongoDB\Driver\Command(["ping" => 1]));'; do
-    TRY=$((TRY+1)); if [ $TRY -ge $MAX_TRIES ]; then echo "MongoDB not ready after $MAX_TRIES tries"; break; fi
-    sleep 2
-done
-
 # Generate self-signed SSL cert for HTTPS (WebAuthn requires secure context)
 SSL_DIR=/etc/nginx/ssl
 mkdir -p "$SSL_DIR"
