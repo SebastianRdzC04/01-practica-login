@@ -99,7 +99,7 @@ class WebAuthn {
             this.#headers["X-CSRF-TOKEN"] ??= csrfToken;
         } else {
             // We didn't find it, and since is required, we will bail out.
-            throw new TypeError('Ensure a CSRF/XSRF token is manually set, or provided in a cookie "XSRF-TOKEN" or or there is meta tag named "csrf-token".');
+            throw new TypeError('Ensure a CSRF/XSRF token is manually set, or provided in a cookie "XSRF-TOKEN" or "XSRF-APP-TOKEN" or or there is meta tag named "csrf-token".');
         }
     }
 
@@ -137,7 +137,7 @@ class WebAuthn {
      * @returns {?string}
      */
      static get #XsrfToken() {
-        const cookie = document.cookie.split(";").find((row) => /^\s*(X-)?[XC]SRF-TOKEN\s*=/.test(row));
+        const cookie = document.cookie.split(";").find((row) => /^\s*(X-)?[XC]SRF(-APP)?-TOKEN\s*=/.test(row));
         // We must remove all '%3D' from the end of the string.
         // Background:
         // The actual binary value of the CSFR value is encoded in Base64.
