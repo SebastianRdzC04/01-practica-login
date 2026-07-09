@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('ip_address', 45)->nullable();
             $table->text('user_agent')->nullable();
             $table->boolean('succeeded')->nullable();
-            $table->json('context')->nullable();
+            $table->text('context')->nullable();
             $table->timestamps();
 
             $table->index('event');
