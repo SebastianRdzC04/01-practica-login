@@ -145,7 +145,6 @@ class AuthLog
             'context' => array_diff_key($context, array_flip([
                 'event', 'user_id', 'email', 'role',
                 'ip_address', 'user_agent', 'succeeded',
-                'app_env', 'app_server_id',
             ])),
         ]);
     }
