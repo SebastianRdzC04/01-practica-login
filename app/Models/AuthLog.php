@@ -25,7 +25,6 @@ class AuthLog extends Model
     {
         return [
             'succeeded' => 'boolean',
-            'context' => 'array',
         ];
     }
 }

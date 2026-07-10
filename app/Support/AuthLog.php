@@ -142,10 +142,10 @@ class AuthLog
             'ip_address' => $context['ip_address'] ?? null,
             'user_agent' => $context['user_agent'] ?? null,
             'succeeded' => $context['succeeded'] ?? null,
-            'context' => array_diff_key($context, array_flip([
+            'context' => json_encode(array_diff_key($context, array_flip([
                 'event', 'user_id', 'email', 'role',
                 'ip_address', 'user_agent', 'succeeded',
-            ])),
+            ]))),
         ]);
     }
 
