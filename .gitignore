@@ -8,9 +8,7 @@
 .env
 .env.backup
 .env.production
-.env.docker
 .env.testing
-.env.testing.docker
 .env.tmp
 
 .phpunit.result.cache

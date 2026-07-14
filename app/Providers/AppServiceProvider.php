@@ -21,7 +21,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if (app()->environment('local', 'docker')) {
+        if (app()->environment('local')) {
             if (! $this->app->runningInConsole()) {
                 $request = $this->app['request'];
                 URL::forceRootUrl($request->getSchemeAndHttpHost());

@@ -1,6 +1,6 @@
 # Practica Login - Laravel 10
 
-Aplicacion de autenticacion y autorizacion por roles construida con Laravel 10, Breeze, Blade y MariaDB.
+Aplicacion de autenticacion y autorizacion por roles construida con Laravel 10, Breeze, Blade y MySQL.
 
 ## Roles
 
@@ -16,68 +16,15 @@ Aplicacion de autenticacion y autorizacion por roles construida con Laravel 10, 
 - `usuario`, `administrador` y `logger` entran a `/dashboard`.
 - `logger` ve la tabla de auditoria de autenticacion.
 
-## Docker
+## Despliegue
 
-Levantar el entorno de desarrollo:
+Produccion en DigitalOcean con 4 servidores: Load Balancer (Nginx), APP1, APP2 (Laravel + PHP-FPM), MySQL.
 
-```bash
-docker compose up -d --build
-```
-
-Recrear desde cero con base limpia:
-
-```bash
-docker compose down -v
-docker compose up -d --build
-```
-
-## URLs
-
-- App: `http://localhost:8080`
-- Login: `http://localhost:8080/login`
-- Registro: `http://localhost:8080/register`
-- Vite: `http://localhost:5173`
-- MariaDB desde host: `127.0.0.1:3307`
+Ver `docs/infraestructura.md` para detalles de certificados, configuraciones y topologia de red.
 
 ## Usuarios de prueba
 
-- `cliente@example.com` / `Cliente123!`
-- `usuario@example.com` / `Usuario123!`
-- `admin@example.com` / `Admin123!`
+- `cliente@example.com` / `X7eV9m.795Tnq4:5`
+- `usuario@example.com` / `p.i3LNSeFjA4S.LfbMs`
+- `admin@example.com` / `dbmKko%Xi4f@a^$qs^dReT2rXYk4k`
 - `logger@example.com` / `Logger123!`
-
-## Logs
-
-Ver logs de la app en vivo:
-
-```bash
-docker compose logs -f app
-```
-
-Ver logs de MariaDB:
-
-```bash
-docker compose logs -f mariadb
-```
-
-## Que hace el arranque del contenedor
-
-- usa `.env.docker` dentro del contenedor
-- espera a que MariaDB este disponible
-- limpia cache de configuracion
-- ejecuta migraciones
-- ejecuta seeders
-- levanta Laravel en `:8000`
-- levanta Vite en `:5173`
-
-## Verificacion realizada
-
-Se verifico con Docker:
-
-- `docker compose up -d --build` funcionando
-- login correcto para `cliente`
-- login correcto para `usuario`
-- login correcto para `administrador`
-- login correcto para `logger`
-- registro publico creando usuario `cliente`
-- persistencia de eventos `login_success` en `login_logs`

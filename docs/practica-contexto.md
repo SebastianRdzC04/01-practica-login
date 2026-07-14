@@ -5,9 +5,9 @@
 ### Stack Tecnologico
 - **Backend:** Laravel 10 (PHP 8.x)
 - **Frontend:** Blade + Alpine.js + Vite
-- **Base de datos:** MariaDB 11.4 (principal), MongoDB 7.0 (logs de auditoria)
-- **Contenedores:** Docker con docker-compose
-- **HTTPS:** Puerto 8443 con certificado autofirmado para WebAuthn en dispositivos moviles
+- **Base de datos:** MySQL 8.4 (principal + logs de auditoria)
+- **Despliegue:** DigitalOcean (LB + 2 APPs + MySQL) con Nginx, Cloudflare
+- **HTTPS:** Cloudflare Origin Certificate, TLS 1.2/1.3 con post-cuantico (X25519MLKEM768)
 
 ### Roles de Usuario
 | Rol | MFA Requerido | Home |
@@ -45,8 +45,8 @@ web (general) → pending.auth (MFA diferido) / auth (autenticado)
 - **CSRF Protection:** En todos los formularios + headers X-CSRF-TOKEN en AJAX
 - **Validacion de origen:** EnsurePendingAuth protege rutas MFA de accesos directos
 
-### Logging (MongoDB)
-Canal `auth` en MongoDB (coleccion `auth_logs`) registra eventos de:
+### Logging (MariaDB)
+Tabla `auth_logs` en MariaDB registra eventos de:
 - Login/logout, registro de usuarios, Google OAuth
 - TOTP setup/verify, WebAuthn setup/authenticate
 - Cambios de password, confirmaciones, reseteos
@@ -65,13 +65,13 @@ Canal `auth` en MongoDB (coleccion `auth_logs`) registra eventos de:
 ## Cambios Realizados Recientemente
 
 ### Bugfixes
-1. **WebAuthn RP ID** — Se elimino `WEBAUTHN_ID=192.168.1.81` del docker-compose. Los navegadores rechazan IPs como RP ID. Ahora se usa el dominio del request (localhost).
+1. **WebAuthn RP ID** — Los navegadores rechazan IPs como RP ID. Se usa el dominio del request.
 2. **Rate limiting en MFA** — Se agregaron limites de 3 intentos para TOTP verify y WebAuthn authenticate con RateLimiter de Laravel.
 
 ### Features
 1. **Perfil solo para clientes** — Rutas de perfil protegidas con middleware `role:cliente`, enlace oculto para otros roles.
 2. **Seguridad en navegacion** — Solo clientes ven opciones de configurar TOTP/WebAuthn en el menu.
-3. **Logging mejora** — Dashboard y ClientArea subidos a nivel `info` para persistir en MongoDB.
+3. **Logging mejora** — Dashboard y ClientArea subidos a nivel `info` para persistir en MariaDB.
 
 ---
 
@@ -90,8 +90,8 @@ Canal `auth` en MongoDB (coleccion `auth_logs`) registra eventos de:
 - Verificar que no haya un periodo donde dos tokens sean validos.
 
 #### 3. Sesion: migrar a Redis/Memcached en produccion
-- `SESSION_DRIVER=file` no escala horizontalmente.
-- Redis ofrece persistencia, cache distribuida y sesiones compartidas entre contenedores.
+- `SESSION_DRIVER=database` permite escalar horizontalmente con upstream de Nginx.
+- Redis ofrece persistencia, cache distribuida y sesiones compartidas entre contenedores (opcional).
 
 #### 4. Prueba de recuperacion de acceso
 - Si un usuario pierde el acceso a TOTP y WebAuthn, no hay forma de recuperar la cuenta.
@@ -111,8 +111,8 @@ Canal `auth` en MongoDB (coleccion `auth_logs`) registra eventos de:
 
 #### 7. Mejoras en logging
 - Agregar `user_agent` completo parseado (OS, browser, device) en los logs.
-- Indices en MongoDB para consultas frecuentes: `{event: 1, created_at: -1}`, `{user_id: 1, created_at: -1}`.
-- Rotacion/retention de logs en MongoDB (TTL index en `created_at`).
+- Indices en MariaDB para consultas frecuentes: `event`, `created_at`, `user_id`.
+- Rotacion/retention de logs en MariaDB (purga programada).
 
 #### 8. WebAuthn multi-dispositivo
 - Permitir registrar multiples dispositivos biometricos.
@@ -187,14 +187,13 @@ app/
 ├── Models/User.php                                  # Roles, factores, home route
 ├── Services/RecaptchaService.php                    # Verificacion reCAPTCHA
 ├── Support/
-│   ├── AuthLog.php                                  # Constantes + wrapper logging
+│   ├── AuthLog.php                                  # Constantes + escritura a DB
 │   ├── InactivityProtection.php                     # Config inactividad por rol
 │   └── LoginLockout.php                             # Config rate limit login
-└── Logging/AuthMongoHandler.php                     # Handler Monolog para MongoDB
 
 config/
 ├── webauthn.php                                     # RP ID, origins, challenge
-├── logging.php                                      # Canal auth con MongoDB
+├── logging.php                                      # Canales de log
 └── services.php                                     # reCAPTCHA, Google OAuth
 
 resources/views/
@@ -211,7 +210,6 @@ resources/views/
 └── client/
     └── home.blade.php                               # Cliente
 
-docker-compose.yml                                   # WEBAUTHN_ID eliminado
 routes/
 ├── web.php                                          # Rutas auth + MFA
 └── auth.php                                         # Login, registro, password
