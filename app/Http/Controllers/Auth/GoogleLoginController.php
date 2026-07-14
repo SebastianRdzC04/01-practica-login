@@ -34,7 +34,7 @@ class GoogleLoginController extends Controller
             'message' => 'Redireccionando a Google OAuth.',
         ]);
 
-        $redirectUrl = $request->getSchemeAndHttpHost() . '/auth/google/callback';
+        $redirectUrl = config('services.google.redirect') ?? ($request->getSchemeAndHttpHost() . '/auth/google/callback');
 
         return Socialite::driver('google')
             ->redirectUrl($redirectUrl)
@@ -59,7 +59,7 @@ class GoogleLoginController extends Controller
     public function callback(Request $request): RedirectResponse
     {
         try {
-            $redirectUrl = $request->getSchemeAndHttpHost() . '/auth/google/callback';
+            $redirectUrl = config('services.google.redirect') ?? ($request->getSchemeAndHttpHost() . '/auth/google/callback');
 
             $googleUser = Socialite::driver('google')
                 ->redirectUrl($redirectUrl)

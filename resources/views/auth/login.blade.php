@@ -81,4 +81,15 @@
             </a>
         </div>
     </div>
+
+    @if (Route::has('register'))
+        <div class="mt-6 text-center">
+            <p class="text-sm text-gray-600">
+                No tienes una cuenta?
+                <a href="{{ route('register') }}" class="font-semibold text-indigo-600 hover:text-indigo-500 transition-colors">
+                    Registrate aqui
+                </a>
+            </p>
+        </div>
+    @endif
 </x-guest-layout>
