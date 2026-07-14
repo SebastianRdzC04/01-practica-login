@@ -7,17 +7,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
-*/
-
 Route::view('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'auth.session', 'log.route.visit', 'inactivity.protected', 'ensure.mfa'])->group(function () {
@@ -37,10 +26,10 @@ Route::middleware(['auth', 'auth.session', 'log.route.visit', 'inactivity.protec
         ->middleware('role:cliente')
         ->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])
-        ->middleware('role:cliente')
+        ->middleware(['role:cliente', 'throttle:web-write'])
         ->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])
-        ->middleware('role:cliente')
+        ->middleware(['role:cliente', 'throttle:web-write'])
         ->name('profile.destroy');
 });
 

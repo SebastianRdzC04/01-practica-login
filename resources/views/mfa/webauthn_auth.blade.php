@@ -115,6 +115,14 @@ document.getElementById('auth').addEventListener('click', async () => {
         }
 
         status.textContent =
+            'Verificando reCAPTCHA...';
+
+        var recaptchaToken = null;
+        if (typeof window.getRecaptchaToken === 'function') {
+            recaptchaToken = await window.getRecaptchaToken();
+        }
+
+        status.textContent =
             'Esperando confirmacion biometrica...';
 
         const assertion =
@@ -172,6 +180,12 @@ document.getElementById('auth').addEventListener('click', async () => {
                 userHandle
             }
         };
+
+        if (recaptchaToken) {
+            payload['g-recaptcha-response'] = recaptchaToken;
+        } else if (window._lastRecaptchaToken) {
+            payload['g-recaptcha-response'] = window._lastRecaptchaToken;
+        }
 
         status.textContent =
             'Verificando identidad...';

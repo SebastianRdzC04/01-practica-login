@@ -10,36 +10,17 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use GuzzleHttp\Client;
 
 class LoginRequest extends FormRequest
 {
-    /**
-     * Determina si el usuario está autorizado a realizar esta solicitud.
-     *
-     * Todas las solicitudes de inicio de sesión están permitidas sin
-     * restricción previa.
-     *
-     * @return bool  Siempre retorna true.
-     *
-     * @see https://docs.phpdoc.org/ PHPDoc standard
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Obtiene las reglas de validación para la solicitud de inicio de sesión.
-     *
-     * Valida que el correo electrónico tenga un formato válido y que
-     * la contraseña sea una cadena de texto.
-     *
-     * @return array<string, Rule|array|string>  Reglas de validación por campo.
-     *
-     * @see https://docs.phpdoc.org/ PHPDoc standard
-     */
     public function rules(): array
     {
         return [
@@ -48,18 +29,6 @@ class LoginRequest extends FormRequest
         ];
     }
 
-    /**
-     * Intenta autenticar las credenciales de la solicitud.
-     *
-     * Verifica el rate limiting, valida el token reCAPTCHA si está
-     * configurado, busca al usuario por correo electrónico y comprueba
-     * la contraseña. En caso de fallo, registra el evento y lanza
-     * una excepción de validación.
-     *
-     * @throws \Illuminate\Validation\ValidationException  Cuando las credenciales son inválidas o el rate limiter está activo.
-     *
-     * @see https://docs.phpdoc.org/ PHPDoc standard
-     */
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
@@ -74,15 +43,21 @@ class LoginRequest extends FormRequest
             'message' => 'Intento de inicio de sesion recibido.',
         ]);
 
-        // Verify reCAPTCHA token
         $recaptchaSecret = config('services.recaptcha.secret') ?? env('RECAPTCHA_SECRET');
         $token = $this->input('g-recaptcha-response');
         if ($recaptchaSecret) {
+            Log::info('reCAPTCHA verify started', [
+                'has_token' => (bool) $token,
+                'token_length' => $token ? strlen($token) : 0,
+                'ip' => $this->ip(),
+            ]);
+
             if (! $token) {
                 RateLimiter::hit($this->throttleKey());
+                Log::warning('reCAPTCHA token missing');
 
                 throw ValidationException::withMessages([
-                    'email' => 'reCAPTCHA token missing. Por favor completa el captcha.',
+                    'email' => __('reCAPTCHA token missing. Por favor completa el captcha.'),
                 ]);
             }
 
@@ -97,16 +72,31 @@ class LoginRequest extends FormRequest
                 ]);
 
                 $body = json_decode((string) $res->getBody(), true);
+                Log::info('reCAPTCHA siteverify response', [
+                    'success' => $body['success'] ?? false,
+                    'error_codes' => $body['error-codes'] ?? [],
+                    'hostname' => $body['hostname'] ?? null,
+                    'action' => $body['action'] ?? null,
+                    'score' => $body['score'] ?? null,
+                ]);
+
                 if (! ($body['success'] ?? false)) {
                     RateLimiter::hit($this->throttleKey());
                     throw ValidationException::withMessages([
-                        'email' => 'reCAPTCHA verification failed.',
+                        'email' => __('reCAPTCHA verification failed.'),
                     ]);
                 }
+            } catch (ValidationException $ve) {
+                throw $ve;
             } catch (\Exception $e) {
                 RateLimiter::hit($this->throttleKey());
+                Log::error('reCAPTCHA Guzzle exception', [
+                    'class' => get_class($e),
+                    'message' => $e->getMessage(),
+                    'code' => $e->getCode(),
+                ]);
                 throw ValidationException::withMessages([
-                    'email' => 'No se pudo verificar reCAPTCHA. Inténtalo de nuevo.',
+                    'email' => __('No se pudo verificar reCAPTCHA. Inténtalo de nuevo.'),
                 ]);
             }
         }
@@ -138,17 +128,6 @@ class LoginRequest extends FormRequest
         RateLimiter::clear($this->throttleKey());
     }
 
-    /**
-     * Verifica que la solicitud no supere el límite de intentos.
-     *
-     * Si el rate limiter indica que se han excedido los intentos
-     * permitidos, dispara un evento Lockout y lanza una excepción
-     * de validación con el tiempo restante de bloqueo.
-     *
-     * @throws \Illuminate\Validation\ValidationException  Cuando se ha superado el límite de intentos.
-     *
-     * @see https://docs.phpdoc.org/ PHPDoc standard
-     */
     public function ensureIsNotRateLimited(): void
     {
         if (! RateLimiter::tooManyAttempts($this->throttleKey(), LoginLockout::MAX_ATTEMPTS)) {
@@ -167,16 +146,6 @@ class LoginRequest extends FormRequest
         ]);
     }
 
-    /**
-     * Obtiene la clave de estrangulamiento para el rate limiter.
-     *
-     * Delega en LoginLockout::throttleKey usando el correo y la
-     * dirección IP de la solicitud actual.
-     *
-     * @return string  Clave única de estrangulamiento.
-     *
-     * @see https://docs.phpdoc.org/ PHPDoc standard
-     */
     public function throttleKey(): string
     {
         return LoginLockout::throttleKey((string) $this->string('email'), (string) $this->ip());

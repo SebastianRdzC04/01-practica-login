@@ -40,5 +40,8 @@
     "Renovar TOTP": "Renovar TOTP",
     "Configurar TOTP": "Configurar TOTP",
     "Renovar WebAuthn": "Renovar WebAuthn",
-    "Configurar WebAuthn": "Configurar WebAuthn"
+    "Configurar WebAuthn": "Configurar WebAuthn",
+    "reCAPTCHA verification failed.": "La verificación reCAPTCHA falló. Por favor inténtalo de nuevo.",
+    "reCAPTCHA token missing. Por favor completa el captcha.": "Token de reCAPTCHA no encontrado. Por favor completa el captcha.",
+    "A user cannot have both a password and a Google ID.": "Un usuario no puede tener contraseña e ID de Google simultáneamente."
 }

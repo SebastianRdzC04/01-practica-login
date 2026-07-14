@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\RecaptchaService;
 use App\Support\AuthLog;
+use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Laragear\WebAuthn\Assertion\Validator\AssertionValidation;
@@ -130,6 +133,15 @@ class WebAuthnController extends Controller
     {
         if ($resp = $this->ensureTotpPassed($request)) {
             return $resp;
+        }
+
+        $recaptchaToken = $request->input('g-recaptcha-response');
+        $recaptchaSecret = config('services.recaptcha.secret') ?? env('RECAPTCHA_SECRET');
+        if ($recaptchaSecret) {
+            if (!RecaptchaService::verify($recaptchaToken, $request->ip())) {
+                Log::warning('reCAPTCHA failed on WebAuthn register', ['ip' => $request->ip()]);
+                return response()->json(['error' => 'captcha_failed', 'message' => __('reCAPTCHA verification failed.')], 422);
+            }
         }
 
         $user = Auth::user();
@@ -272,6 +284,15 @@ class WebAuthnController extends Controller
     public function authenticate(AssertedRequest $request)
     {
         $user = Auth::user();
+
+        $recaptchaToken = $request->input('g-recaptcha-response');
+        $recaptchaSecret = config('services.recaptcha.secret') ?? env('RECAPTCHA_SECRET');
+        if ($recaptchaSecret) {
+            if (!RecaptchaService::verify($recaptchaToken, $request->ip())) {
+                Log::warning('reCAPTCHA failed on WebAuthn authenticate', ['ip' => $request->ip()]);
+                return response()->json(['error' => 'captcha_failed', 'message' => __('reCAPTCHA verification failed.')], 422);
+            }
+        }
 
         $rateLimitKey = 'mfa-webauthn:' . ($user?->id ?? request()->ip());
         if (RateLimiter::tooManyAttempts($rateLimitKey, 3)) {

@@ -102,7 +102,7 @@ class TwoFactorController
                     'message' => 'reCAPTCHA fallo en configuracion TOTP.',
                 ]);
                 throw ValidationException::withMessages([
-                    'totp' => 'reCAPTCHA verification failed.',
+                    'totp' => __('reCAPTCHA verification failed.'),
                 ]);
             }
         }
@@ -282,7 +282,7 @@ class TwoFactorController
                     'message' => 'reCAPTCHA fallo en verificacion TOTP.',
                 ]);
                 throw ValidationException::withMessages([
-                    'totp' => 'reCAPTCHA verification failed.',
+                    'totp' => __('reCAPTCHA verification failed.'),
                 ]);
             }
         }

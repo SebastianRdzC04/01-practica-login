@@ -43,7 +43,7 @@ class ConfirmablePasswordController extends Controller
                     'message' => 'reCAPTCHA fallo en confirmacion de contrasena.',
                 ]);
                 throw ValidationException::withMessages([
-                    'password' => 'reCAPTCHA verification failed.',
+                    'password' => __('reCAPTCHA verification failed.'),
                 ]);
             }
         }

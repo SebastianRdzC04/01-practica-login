@@ -92,7 +92,7 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
     {
         static::saving(function (User $user) {
             if ($user->password && $user->google_id) {
-                throw new \LogicException('A user cannot have both a password and a Google ID.');
+                throw new \LogicException(__('A user cannot have both a password and a Google ID.'));
             }
         });
     }

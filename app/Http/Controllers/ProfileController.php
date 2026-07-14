@@ -77,7 +77,7 @@ class ProfileController extends Controller
                     'message' => 'reCAPTCHA fallo en actualizacion de perfil.',
                 ]);
                 throw ValidationException::withMessages([
-                    'name' => 'reCAPTCHA verification failed.',
+                    'name' => __('reCAPTCHA verification failed.'),
                 ]);
             }
         }
@@ -145,7 +145,7 @@ class ProfileController extends Controller
                     'message' => 'reCAPTCHA fallo en eliminacion de cuenta.',
                 ]);
                 throw ValidationException::withMessages([
-                    'password' => 'reCAPTCHA verification failed.',
+                    'password' => __('reCAPTCHA verification failed.'),
                 ]);
             }
         }

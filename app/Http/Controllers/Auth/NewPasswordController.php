@@ -58,7 +58,7 @@ class NewPasswordController extends Controller
                     'message' => 'reCAPTCHA fallo en restablecimiento de contrasena.',
                 ]);
                 throw ValidationException::withMessages([
-                    'email' => 'reCAPTCHA verification failed.',
+                    'email' => __('reCAPTCHA verification failed.'),
                 ]);
             }
         }

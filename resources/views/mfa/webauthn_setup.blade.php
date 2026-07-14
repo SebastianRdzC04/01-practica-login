@@ -74,6 +74,14 @@ document.getElementById('start').addEventListener('click', async () => {
         button.textContent = 'Procesando...';
 
         status.textContent =
+            'Verificando reCAPTCHA...';
+
+        var recaptchaToken = null;
+        if (typeof window.getRecaptchaToken === 'function') {
+            recaptchaToken = await window.getRecaptchaToken();
+        }
+
+        status.textContent =
             'Solicitando opciones de registro...';
 
         const resp = await fetch(urls.options, {
@@ -138,6 +146,12 @@ document.getElementById('start').addEventListener('click', async () => {
                 attestationObject
             }
         };
+
+        if (recaptchaToken) {
+            payload['g-recaptcha-response'] = recaptchaToken;
+        } else if (window._lastRecaptchaToken) {
+            payload['g-recaptcha-response'] = window._lastRecaptchaToken;
+        }
 
         status.textContent =
             'Registrando dispositivo...';

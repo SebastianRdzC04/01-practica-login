@@ -89,7 +89,7 @@ class PasswordResetLinkController extends Controller
                     'message' => 'reCAPTCHA fallo en solicitud de restablecimiento.',
                 ]);
                 throw ValidationException::withMessages([
-                    'email' => 'reCAPTCHA verification failed.',
+                    'email' => __('reCAPTCHA verification failed.'),
                 ]);
             }
         }

@@ -90,7 +90,7 @@ class RegisteredUserController extends Controller
                     'message' => 'reCAPTCHA fallo en registro.',
                 ]);
                 throw ValidationException::withMessages([
-                    'email' => 'reCAPTCHA verification failed.',
+                    'email' => __('reCAPTCHA verification failed.'),
                 ]);
             }
         }

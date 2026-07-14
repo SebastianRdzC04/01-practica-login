@@ -25,6 +25,19 @@
                 window._recaptchaWidgetId = null;
                 window._recaptchaReady = false;
                 window._recaptchaRequestingForm = null;
+                window._lastRecaptchaToken = null;
+
+                window.getRecaptchaToken = function() {
+                    return new Promise(function(resolve) {
+                        if (!window._recaptchaReady || window._recaptchaWidgetId === null) {
+                            resolve(null);
+                            return;
+                        }
+                        var prevCallback = window._recaptchaTokenResolve;
+                        window._recaptchaTokenResolve = resolve;
+                        grecaptcha.execute(window._recaptchaWidgetId);
+                    });
+                };
 
                 function onRecaptchaLoad() {
                     if (!window.grecaptcha) return;
@@ -36,6 +49,13 @@
                                 'size': 'invisible',
                                 'badge': 'bottomright',
                                 'callback': function(token) {
+                                    window._lastRecaptchaToken = token;
+                                    if (window._recaptchaTokenResolve) {
+                                        var resolve = window._recaptchaTokenResolve;
+                                        window._recaptchaTokenResolve = null;
+                                        resolve(token);
+                                        return;
+                                    }
                                     var form = window._recaptchaRequestingForm;
                                     if (form) {
                                         var input = form.querySelector('input[name="g-recaptcha-response"]');
