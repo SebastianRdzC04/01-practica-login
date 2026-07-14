@@ -375,16 +375,7 @@
 
 ---
 
-## Módulo: Logging
 
-### `app/Logging/AuthMongoHandler.php`
-
-#### `__construct(int|string|Level $level = 'debug', bool $bubble = true, ?string $uri = null, ?string $database = null, ?string $collection = null, array $options = [], array $driverOptions = [])`
-**Descripción:** Construye el handler y configura la conexión a MongoDB.
-**Parámetros:** `int|string|\Monolog\Level $level` — Nivel mínimo de log (por defecto 'debug'). | `bool $bubble` — Si los registros deben propagarse a otros handlers. | `string|null $uri` — URI de conexión a MongoDB (opcional). | `string|null $database` — Nombre de la base de datos (opcional). | `string|null $collection` — Nombre de la colección (opcional). | `array<string, mixed> $options` — Opciones del cliente MongoDB. | `array<string, mixed> $driverOptions` — Opciones del driver MongoDB.
-**Retorna:** `void`
-
----
 
 ## Módulo: Tests
 
@@ -469,22 +460,17 @@
 
 ### `tests/Concerns/InteractsWithAuthMongoLogs.php`
 
-#### `authLogCollection()` (protected)
-**Descripción:** Obtiene la colección de MongoDB donde se almacenan los logs de autenticación.
-**Parámetros:** Ninguno.
-**Retorna:** `\MongoDB\Collection` — Colección de MongoDB para logs de autenticación.
-
 #### `clearAuthMongoLogs()` (protected)
-**Descripción:** Elimina todos los documentos de la colección de logs de autenticación.
+**Descripción:** Elimina todos los registros de la tabla auth_logs.
 **Parámetros:** Ninguno.
 **Retorna:** `void`
 
 #### `assertAuthMongoLogExists(array $criteria)` (protected)
-**Descripción:** Verifica que exista al menos un documento en la colección de logs de autenticación que coincida con los criterios proporcionados.
-**Parámetros:** `array $criteria` — Criterios de búsqueda (filtro MongoDB).
+**Descripción:** Verifica que exista al menos un registro en auth_logs que coincida con los criterios proporcionados.
+**Parámetros:** `array $criteria` — Criterios de búsqueda (campos y valores).
 **Retorna:** `void`
 
 #### `authMongoLogs()` (protected)
-**Descripción:** Obtiene todos los documentos de la colección de logs de autenticación.
+**Descripción:** Obtiene todos los registros de la tabla auth_logs.
 **Parámetros:** Ninguno.
-**Retorna:** `array` — Arreglo de documentos de MongoDB.
+**Retorna:** `array` — Arreglo de registros.

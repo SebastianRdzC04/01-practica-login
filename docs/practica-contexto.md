@@ -5,9 +5,10 @@
 ### Stack Tecnologico
 - **Backend:** Laravel 10 (PHP 8.x)
 - **Frontend:** Blade + Alpine.js + Vite
-- **Base de datos:** MariaDB 11.4 (principal), MongoDB 7.0 (logs de auditoria)
-- **Contenedores:** Docker con docker-compose
-- **HTTPS:** Puerto 8443 con certificado autofirmado para WebAuthn en dispositivos moviles
+- **Base de datos:** MySQL 8.4 (principal + logs de auditoria)
+- **Contenedores:** Docker con docker-compose (desarrollo local)
+- **Despliegue:** DigitalOcean (LB + 2 APPs + MySQL) con Nginx y Cloudflare
+- **HTTPS:** Cloudflare Origin Certificate, TLS 1.2/1.3 con post-cuantico
 
 ### Roles de Usuario
 | Rol | MFA Requerido | Home |
@@ -65,13 +66,13 @@ Canal `auth` en MongoDB (coleccion `auth_logs`) registra eventos de:
 ## Cambios Realizados Recientemente
 
 ### Bugfixes
-1. **WebAuthn RP ID** — Se elimino `WEBAUTHN_ID=192.168.1.81` del docker-compose. Los navegadores rechazan IPs como RP ID. Ahora se usa el dominio del request (localhost).
+1. **WebAuthn RP ID** — Los navegadores rechazan IPs como RP ID. Se usa el dominio del request.
 2. **Rate limiting en MFA** — Se agregaron limites de 3 intentos para TOTP verify y WebAuthn authenticate con RateLimiter de Laravel.
 
 ### Features
 1. **Perfil solo para clientes** — Rutas de perfil protegidas con middleware `role:cliente`, enlace oculto para otros roles.
 2. **Seguridad en navegacion** — Solo clientes ven opciones de configurar TOTP/WebAuthn en el menu.
-3. **Logging mejora** — Dashboard y ClientArea subidos a nivel `info` para persistir en MongoDB.
+3. **Logging mejora** — Dashboard y ClientArea subidos a nivel `info` para persistir en MySQL.
 
 ---
 
