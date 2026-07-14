@@ -234,7 +234,7 @@ window.sessionInactivityGuard = ({ enabled, modalTimeoutSeconds, warningTimeoutS
         window.clearInterval(this.countdownIntervalId);
         this.countdownSeconds = 0;
 
-        await this.sendHeartbeat();
+        this.sendHeartbeat();
         this.resetIdleTimer();
     },
 
@@ -242,9 +242,7 @@ window.sessionInactivityGuard = ({ enabled, modalTimeoutSeconds, warningTimeoutS
         try {
             await window.axios.post(this.heartbeatUrl);
         } catch (error) {
-            if (error?.response?.status === 401 || error?.response?.status === 419) {
-                this.logoutNow();
-            }
+            // Silently ignore heartbeat failures; server-side timeout handles forced logouts.
         }
     },
 
