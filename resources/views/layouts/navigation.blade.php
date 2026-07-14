@@ -40,43 +40,6 @@
                     </x-slot>
 
                     <x-slot name="content">
-                        @if (Auth::user()->hasRole(\App\Models\User::ROLE_CLIENT))
-                            <x-dropdown-link :href="route('profile.edit')">
-                                {{ __('Profile') }}
-                            </x-dropdown-link>
-                        @endif
-
-                        @if (Auth::user()->hasRole(\App\Models\User::ROLE_CLIENT))
-                            <div class="border-t border-gray-100 my-1"></div>
-
-                            <div class="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                {{ __('Seguridad') }}
-                            </div>
-
-                            @php($hasTotp = (bool) Auth::user()->two_factor_enabled)
-                            @php($hasWebauthn = Auth::user()->webAuthnCredentials()->exists())
-
-                            <x-dropdown-link :href="route('mfa.setup')">
-                                @if ($hasTotp)
-                                    {{ __('Renovar TOTP') }}
-                                @else
-                                    {{ __('Configurar TOTP') }}
-                                @endif
-                            </x-dropdown-link>
-
-                            <x-dropdown-link :href="route('mfa.webauthn.setup')">
-                                @if ($hasWebauthn)
-                                    {{ __('Renovar WebAuthn') }}
-                                @else
-                                    {{ __('Configurar WebAuthn') }}
-                                @endif
-                            </x-dropdown-link>
-                        @endif
-
-                        @if (Auth::user()->hasRole(\App\Models\User::ROLE_CLIENT))
-                            <div class="border-t border-gray-100 my-1"></div>
-                        @endif
-
                         <!-- Authentication -->
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
@@ -120,41 +83,6 @@
             </div>
 
             <div class="mt-3 space-y-1">
-                @if (Auth::user()->hasRole(\App\Models\User::ROLE_CLIENT))
-                    <x-responsive-nav-link :href="route('profile.edit')">
-                        {{ __('Profile') }}
-                    </x-responsive-nav-link>
-                @endif
-
-                @if (Auth::user()->hasRole(\App\Models\User::ROLE_CLIENT))
-                    <div class="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        {{ __('Seguridad') }}
-                    </div>
-
-                    @php($hasTotp = (bool) Auth::user()->two_factor_enabled)
-                    @php($hasWebauthn = Auth::user()->webAuthnCredentials()->exists())
-
-                    <x-responsive-nav-link :href="route('mfa.setup')">
-                        @if ($hasTotp)
-                            {{ __('Renovar TOTP') }}
-                        @else
-                            {{ __('Configurar TOTP') }}
-                        @endif
-                    </x-responsive-nav-link>
-
-                    <x-responsive-nav-link :href="route('mfa.webauthn.setup')">
-                        @if ($hasWebauthn)
-                            {{ __('Renovar WebAuthn') }}
-                        @else
-                            {{ __('Configurar WebAuthn') }}
-                        @endif
-                    </x-responsive-nav-link>
-                @endif
-
-                @if (Auth::user()->hasRole(\App\Models\User::ROLE_CLIENT))
-                    <div class="border-t border-gray-100 my-1"></div>
-                @endif
-
                 <!-- Authentication -->
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
